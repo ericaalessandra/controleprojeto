@@ -90,6 +90,7 @@ const App: React.FC = () => {
   const [isConsolidatedReportOpen, setIsConsolidatedReportOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
   const [editingAICompanyId, setEditingAICompanyId] = useState<string | null>(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   // Global Chatbot Icon (Master Company Logic)
   const globalChatBotIcon = React.useMemo(() => {
@@ -518,8 +519,10 @@ const App: React.FC = () => {
         await loadEssentialData(null);
 
         // Adiciona listener do Supabase
-        const { data: authData } = supabase.auth.onAuthStateChange(async (event) => {
-          if (event === 'SIGNED_OUT' && currentUser) {
+        const { data: authData } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (event === 'PASSWORD_RECOVERY') {
+            setIsPasswordRecovery(true);
+          } else if (event === 'SIGNED_OUT' && currentUser) {
             handleLogout();
           }
         });
@@ -624,8 +627,9 @@ const App: React.FC = () => {
     </div>
   );
 
-  if (!currentUser) {
-    return <Login onLogin={handleLogin} onRegister={async () => { }} companies={companies} notify={notify} />;
+  // Se estiver em modo de recuperação de senha, força a tela de Login (Primeiro Acesso step 2)
+  if (!currentUser || isPasswordRecovery) {
+    return <Login onLogin={handleLogin} onRegister={async () => { }} companies={companies} notify={notify} forceRecovery={isPasswordRecovery} />;
   }
 
   const userRoleConfig = roles.find(r => r.id === (currentUser?.role || 'user')) || DEFAULT_ROLES[1];

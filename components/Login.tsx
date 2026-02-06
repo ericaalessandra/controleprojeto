@@ -8,9 +8,10 @@ import { supabase } from '../supabase';
 
 interface LoginProps {
   onLogin: (user: User) => Promise<void>;
-  onRegister: (data: any) => Promise<void>;
-  companies: Company[];
-  notify: (type: any, title: string, message: string) => void;
+  onRegister?: (user: User) => Promise<void>;
+  companies?: Company[];
+  notify?: (type: 'success' | 'danger' | 'warning', title: string, msg: string) => void;
+  forceRecovery?: boolean; // Novo prop
 }
 
 const validateEmail = (email: string) => {
@@ -53,7 +54,7 @@ const Input = ({ label, error, type = "text", icon, ...props }: any) => {
   );
 };
 
-const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify, forceRecovery }) => {
   const { t } = useLanguage();
   const [view, setView] = useState<'login' | 'forgot' | 'firstAccess'>('login');
   const [recoveryStep, setRecoveryStep] = useState<1 | 2>(1);
@@ -273,12 +274,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify })
         } else if (password.length < 5) {
           setError("A senha deve ter no mínimo 5 caracteres.");
         } else if (recoveryUser) {
-          // No fluxo do Supabase, o ideal é usar resetPasswordForEmail.
-          // Como o usuário quer "ajustar a regra", vamos tentar atualizar 
-          // ou orientar que a senha agora é gerenciada pelo servidor.
-          setError("Para sua segurança, use o link de recuperação enviado ao seu e-mail.");
-          // Opcional: implementar resetPasswordForEmail aqui
-          // await supabase.auth.resetPasswordForEmail(email);
+          // Enviar e-mail de recuperação real via Supabase
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin, // Redireciona para o site
+          });
+
+          if (resetError) {
+            setError(`Erro ao enviar e-mail: ${resetError.message}`);
+          } else {
+            notify('success', 'E-mail Enviado', 'Verifique sua caixa de entrada para redefinir a senha.');
+            alert("Um link de recuperação foi enviado para o seu e-mail.\n\nClique no link e você será redirecionado para criar uma nova senha.");
+            setView('login');
+            setEmail('');
+          }
         }
       }
     } catch (err) { setError("Falha crítica na recuperação."); }
