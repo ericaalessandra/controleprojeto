@@ -527,7 +527,10 @@ const App: React.FC = () => {
 
         setIsReady(true);
       } catch (error) {
-        notify('error', 'Falha no Sistema', 'O banco de dados local falhou ao iniciar.');
+        console.error("Critical Init Error:", error);
+        notify('error', 'Falha no Sistema', 'O banco de dados local falhou ao iniciar. O sistema pode estar instável.');
+      } finally {
+        setIsReady(true);
       }
     };
     initApp();
