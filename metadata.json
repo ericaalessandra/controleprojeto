@@ -1,0 +1,5 @@
+{
+  "name": "Gestão de Projetos e Controle Orçamentário",
+  "description": "Um gerenciador de projetos e tarefas robusto com visual estilo Kanban, suporte a anexos de arquivos e insights inteligentes via Gemini API.",
+  "requestFramePermissions": []
+}

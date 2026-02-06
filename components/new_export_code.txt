@@ -1,0 +1,239 @@
+    // Função DETALHADA para Exportação de PDF (Versão Visual Textual)
+    const handleExportAccountabilityPDF = async () => {
+        if (selectedProjectIds.size === 0) {
+            alert('Selecione pelo menos um projeto para exportar.');
+            return;
+        }
+
+        setIsGeneratingPDF(true);
+        try {
+            const doc = new jsPDF();
+            const selectedProjects = filteredData.flat.filter(({ project }) => selectedProjectIds.has(project.id));
+
+            for (let idx = 0; idx < selectedProjects.length; idx++) {
+                const { project, tasks } = selectedProjects[idx];
+                
+                if (idx > 0) doc.addPage();
+
+                const projectCompany = companies.find(c => c.id === project.companyId) || null;
+                await applyProfessionalHeader(doc, 'Prestação de Contas', projectCompany);
+
+                let currentY = 45;
+
+                doc.setFontSize(16);
+                doc.setTextColor(33, 33, 33);
+                doc.text(project.name, 14, currentY);
+                currentY += 7;
+
+                if (project.description) {
+                    doc.setFontSize(9);
+                    doc.setTextColor(120, 120, 120);
+                    const descLines = doc.splitTextToSize(project.description, 180);
+                    doc.text(descLines, 14, currentY);
+                    currentY += descLines.length * 4 + 5;
+                }
+
+                doc.setFontSize(9);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Período: ${formatDate(project.startDate)} até ${formatDate(project.endDate)}`, 14, currentY);
+                currentY += 8;
+
+                const totalBudget = project.totalBudget || 0;
+                const allocatedBudget = tasks.reduce((acc, t) => acc + (t.budget || 0), 0);
+                const completedTasks = tasks.filter(t => t.status === 'Concluído').length;
+                const progressPercent = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+                doc.setFillColor(245, 247, 250);
+                doc.roundedRect(14, currentY, 180, 28, 3, 3, 'F');
+                
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Orçamento Total', 18, currentY + 5);
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(formatCurrency(totalBudget), 18, currentY + 12);
+
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Orçamento Alocado', 70, currentY + 5);
+                doc.setFontSize(12);
+                doc.setTextColor(0, 113, 227);
+                doc.text(formatCurrency(allocatedBudget), 70, currentY + 12);
+
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Progresso', 122, currentY + 5);
+                doc.setFontSize(12);
+                const progressColor = progressPercent >= 75 ? [16, 185, 129] : progressPercent >= 25 ? [251, 146, 60] : [100, 100, 100];
+                doc.setTextColor(progressColor[0], progressColor[1], progressColor[2]);
+                doc.text(`${progressPercent}%`, 122, currentY + 12);
+
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Tarefas', 162, currentY + 5);
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`${completedTasks}/${tasks.length}`, 162, currentY + 12);
+
+                currentY += 35;
+
+                // --- Seção Visual Textual ---
+                const colWidth = 85;
+                const rightColX = 110;
+                
+                // Coluna 1: Distribuição por Status
+                doc.setFontSize(10);
+                doc.setTextColor(33, 43, 54);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Distribuição por Status', 18, currentY);
+                doc.setFont('helvetica', 'normal');
+                
+                doc.setDrawColor(226, 232, 240);
+                doc.line(18, currentY + 2, 90, currentY + 2);
+                
+                let statsY = currentY + 10;
+                const statusCounts: Record<string, number> = {};
+                tasks.forEach(t => {
+                    statusCounts[t.status] = (statusCounts[t.status] || 0) + 1;
+                });
+
+                const statusColorsMap = {
+                    'Planejamento': [148, 163, 184],
+                    'Em Planejamento': [148, 163, 184],
+                    'Em Execução': [251, 146, 60],
+                    'Concluído': [16, 185, 129],
+                    'Atrasado': [239, 68, 68],
+                    'Cancelado': [203, 213, 225]
+                };
+
+                Object.entries(statusCounts).forEach(([status, count]) => {
+                    const percentage = Math.round((count / tasks.length) * 100);
+                    // @ts-ignore
+                    const color = statusColorsMap[status] || [148, 163, 184];
+                    
+                    // Badge Colorido
+                    doc.setFillColor(color[0], color[1], color[2]);
+                    doc.roundedRect(18, statsY - 3, 3, 10, 1, 1, 'F');
+                    
+                    // Texto
+                    doc.setFontSize(9);
+                    doc.setTextColor(71, 85, 105);
+                    doc.text(status, 25, statsY + 3);
+                    
+                    // Valor
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`${count}`, 85, statsY + 3, { align: 'right' });
+                    doc.setFont('helvetica', 'normal');
+                    
+                    // Barra de fundo cinza
+                    doc.setFillColor(241, 245, 249);
+                    doc.rect(25, statsY + 5, 60, 2, 'F');
+                    
+                    // Barra de progresso colorida
+                    doc.setFillColor(color[0], color[1], color[2]);
+                    doc.rect(25, statsY + 5, 60 * (percentage / 100), 2, 'F');
+                    
+                    statsY += 14;
+                });
+
+                // Coluna 2: Maiores Gastos (Top 5)
+                doc.setFontSize(10);
+                doc.setTextColor(33, 43, 54);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Maiores Gastos por Ação', rightColX, currentY);
+                doc.setFont('helvetica', 'normal');
+                
+                doc.setDrawColor(226, 232, 240);
+                doc.line(rightColX, currentY + 2, rightColX + colWidth, currentY + 2);
+                
+                let expenseY = currentY + 10;
+                const topExpenses = tasks
+                    .filter(t => (t.budget || 0) > 0)
+                    .sort((a, b) => (b.budget || 0) - (a.budget || 0))
+                    .slice(0, 5);
+
+                const maxExpense = topExpenses.length > 0 ? (topExpenses[0].budget || 0) : 1;
+
+                if (topExpenses.length > 0) {
+                    topExpenses.forEach(t => {
+                        const budget = t.budget || 0;
+                        const percentageOfMax = budget / maxExpense;
+                        
+                        // Título truncado
+                        doc.setFontSize(8);
+                        doc.setTextColor(71, 85, 105);
+                        const cleanTitle = t.title.length > 25 ? t.title.substring(0, 25) + '...' : t.title;
+                        doc.text(cleanTitle, rightColX, expenseY);
+                        
+                        // Valor
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(0, 113, 227); // Azul brand
+                        doc.text(formatCurrency(budget), rightColX + colWidth, expenseY, { align: 'right' });
+                        doc.setFont('helvetica', 'normal');
+                        
+                        // Barra visual
+                        doc.setFillColor(241, 245, 249);
+                        doc.roundedRect(rightColX, expenseY + 2, colWidth, 4, 1, 1, 'F');
+                        
+                        doc.setFillColor(0, 113, 227);
+                        doc.roundedRect(rightColX, expenseY + 2, colWidth * percentageOfMax, 4, 1, 1, 'F');
+                        
+                        expenseY += 12;
+                    });
+                } else {
+                    doc.setFontSize(9);
+                    doc.setTextColor(148, 163, 184);
+                    doc.text('Nenhum gasto registrado.', rightColX, expenseY + 5);
+                }
+
+                // Ajustar Y para a tabela (pegar o maior Y das duas colunas)
+                currentY = Math.max(statsY, expenseY) + 15;
+
+                // Tabela de Tarefas
+                const tableData = tasks.map(t => [
+                    t.title,
+                    t.objective || '-',
+                    t.status,
+                    `${formatDate(t.startDate)} - ${formatDate(t.endDate)}`,
+                    t.involved && t.involved.length > 0 ? t.involved.slice(0, 2).join(', ') : '-',
+                    formatCurrency(t.budget || 0)
+                ]);
+
+                (doc as any).autoTable({
+                    startY: currentY,
+                    margin: { top: 35, bottom: 20 },
+                    head: [['Ação', 'Objetivo', 'Status', 'Período', 'Responsáveis', 'Custo']],
+                    body: tableData,
+                    foot: [[{ content: 'Total Alocado:', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } }, 
+                            { content: formatCurrency(allocatedBudget), styles: { halign: 'right', fontStyle: 'bold', textColor: [0, 113, 227] } }]],
+                    theme: 'striped',
+                    headStyles: { fillColor: [0, 113, 227], fontSize: 8, fontStyle: 'bold' },
+                    footStyles: { fillColor: [245, 247, 250], fontSize: 9, fontStyle: 'bold' },
+                    styles: { fontSize: 7, cellPadding: 2 },
+                    columnStyles: {
+                        0: { cellWidth: 45 },
+                        1: { cellWidth: 35 },
+                        2: { cellWidth: 25, halign: 'center' },
+                        3: { cellWidth: 30, fontSize: 6 },
+                        4: { cellWidth: 30 },
+                        5: { cellWidth: 22, halign: 'right' }
+                    }
+                });
+            }
+
+            const hashData = `Prestacao-Contas-Detalhada-${selectedProjectIds.size}-${new Date().getTime()}`;
+            const hash = await generateIntegrityHash(hashData);
+            const qrCode = await generateQRCode(hash);
+            applyProfessionalFooter(doc, hash, qrCode);
+
+            const filename = selectedProjects.length === 1
+                ? `Prestacao_Contas_${selectedProjects[0].project.name.replace(/\s/g, '_')}.pdf`
+                : `Prestacao_Contas_${selectedProjects.length}_Projetos.pdf`;
+            doc.save(filename);
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error);
+            alert('Falha ao gerar relatório PDF. Detalhes: ' + (error as Error).message);
+        } finally {
+            setIsGeneratingPDF(false);
+        }
+    };
