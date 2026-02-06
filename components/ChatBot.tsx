@@ -48,8 +48,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ projects, tasks, accessoryTasks = [],
     setIsTyping(true);
 
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    const isProduction = import.meta.env.PROD;
 
-    if (!apiKey) {
+    // Apenas verifica API Key se NÃO estiver em produção
+    // Em produção, a chave fica segura no servidor (Edge Function)
+    if (!isProduction && !apiKey) {
       setMessages(prev => [...prev, {
         role: 'model',
         text: "⚠️ API Key não configurada. Verifique seu arquivo .env",
