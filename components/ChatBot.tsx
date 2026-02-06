@@ -94,34 +94,18 @@ const ChatBot: React.FC<ChatBotProps> = ({ projects, tasks, accessoryTasks = [],
         
         PROJETOS DO USUÁRIO (${projects.length} projetos):
         ${projects.map(p => `
-          - Nome: "${p.name}"
-          - Descrição: ${p.description || 'Sem descrição'}
-          - Status: ${p.status}
-          - Orçamento Total: R$ ${p.totalBudget?.toLocaleString('pt-BR') || '0'}
-          - Início: ${p.startDate ? new Date(p.startDate).toLocaleDateString('pt-BR') : 'Não definido'}
-          - Término: ${p.endDate ? new Date(p.endDate).toLocaleDateString('pt-BR') : 'Não definido'}
+          - ${p.name} | Status: ${p.status} | Orçamento: ${p.totalBudget || 0} | Início: ${p.startDate ? new Date(p.startDate).toLocaleDateString('pt-BR') : 'ND'} | Fim: ${p.endDate ? new Date(p.endDate).toLocaleDateString('pt-BR') : 'ND'}
         `).join('\n')}
 
         TAREFAS DO USUÁRIO (${tasks.length} tarefas):
-        ${tasks.map(t => `
-          - Título: "${t.title}"
-          - Projeto: ${projects.find(p => p.id === t.projectId)?.name || 'Desconhecido'}
-          - Status: ${t.status}
-          - Prioridade: ${t.priority || 'Normal'}
-          - Orçamento: R$ ${t.budget?.toLocaleString('pt-BR') || '0'}
-          - Responsável: ${t.assignedTo || 'Não atribuído'}
-          - Início: ${t.startDate ? new Date(t.startDate).toLocaleDateString('pt-BR') : 'Não definido'}
-          - Fim: ${t.endDate ? new Date(t.endDate).toLocaleDateString('pt-BR') : 'Não definido'}
+        ${tasks.slice(0, 50).map(t => `
+          - ${t.title} | ${t.status} | Início: ${t.startDate ? new Date(t.startDate).toLocaleDateString('pt-BR') : 'ND'} | Fim: ${t.endDate ? new Date(t.endDate).toLocaleDateString('pt-BR') : 'ND'}
         `).join('\n')}
+        ${tasks.length > 50 ? `(... mais ${tasks.length - 50} tarefas omitidas)` : ''}
 
         TAREFAS ACESSÓRIAS (${accessoryTasks.length} itens):
-        ${accessoryTasks.map(a => `
-          - Título: "${a.title}"
-          - Descrição: ${a.description || 'Sem descrição'}
-          - Status: ${a.status}
-          - Responsável: ${a.assignedTo || 'Não atribuído'}
-          - Início: ${a.startDate || 'ND'}
-          - Fim: ${a.endDate || 'ND'}
+        ${accessoryTasks.slice(0, 50).map(a => `
+          - ${a.title} | Status: ${a.status} | Início: ${a.startDate || 'ND'} | Fim: ${a.endDate || 'ND'}
         `).join('\n')}
 
         ===== INSTRUÇÕES FINAIS =====
@@ -234,12 +218,17 @@ const ChatBot: React.FC<ChatBotProps> = ({ projects, tasks, accessoryTasks = [],
                 </div>
               </div>
             ))}
-            {isTyping && !messages[messages.length - 1].text && (
-              <div className="flex justify-start">
-                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl rounded-tl-none shadow-sm flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
+            {isTyping && (
+              <div className="flex justify-start animate-pulse">
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-3">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></span>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    O Innova Intelligence está analisando...
+                  </span>
                 </div>
               </div>
             )}

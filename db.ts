@@ -17,59 +17,79 @@ const STORES = {
 
 export class Database {
   private db: IDBDatabase | null = null;
+  private isFallback: boolean = false;
 
   async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+    return new Promise((resolve) => { // Removido reject para evitar travar o app
+      try {
+        if (typeof indexedDB === 'undefined') {
+          console.warn('[DB] IndexedDB not available (Incognito?). Using fallback mode.');
+          this.isFallback = true;
+          return resolve();
+        }
 
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(STORES.COMPANIES)) {
-          db.createObjectStore(STORES.COMPANIES, { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains(STORES.PROJECTS)) {
-          const projectStore = db.createObjectStore(STORES.PROJECTS, { keyPath: 'id' });
-          projectStore.createIndex('companyId', 'companyId', { unique: false });
-        }
-        if (!db.objectStoreNames.contains(STORES.TASKS)) {
-          const taskStore = db.createObjectStore(STORES.TASKS, { keyPath: 'id' });
-          taskStore.createIndex('companyId', 'companyId', { unique: false });
-          taskStore.createIndex('projectId', 'projectId', { unique: false });
-        }
-        // Nova Store para Scheduler
-        if (!db.objectStoreNames.contains(STORES.ACCESSORY_TASKS)) {
-          const accStore = db.createObjectStore(STORES.ACCESSORY_TASKS, { keyPath: 'id' });
-          accStore.createIndex('companyId', 'companyId', { unique: false });
-          accStore.createIndex('date', 'date', { unique: false });
-        }
-        if (!db.objectStoreNames.contains(STORES.RESOURCES)) {
-          db.createObjectStore(STORES.RESOURCES, { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains(STORES.USERS)) {
-          const userStore = db.createObjectStore(STORES.USERS, { keyPath: 'id' });
-          userStore.createIndex('companyId', 'companyId', { unique: false });
-          userStore.createIndex('email', 'email', { unique: true });
-        }
-        if (!db.objectStoreNames.contains(STORES.LOGS)) {
-          const logStore = db.createObjectStore(STORES.LOGS, { keyPath: 'id' });
-          logStore.createIndex('companyId', 'companyId', { unique: false });
-          logStore.createIndex('timestamp', 'timestamp', { unique: false });
-        }
-        if (!db.objectStoreNames.contains(STORES.ROLES)) {
-          db.createObjectStore(STORES.ROLES, { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains(STORES.INVITATIONS)) {
-          db.createObjectStore(STORES.INVITATIONS, { keyPath: 'id' });
-        }
-      };
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onsuccess = (event) => {
-        this.db = (event.target as IDBOpenDBRequest).result;
-        this.cleanupOldLogs();
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          if (!db.objectStoreNames.contains(STORES.COMPANIES)) {
+            db.createObjectStore(STORES.COMPANIES, { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains(STORES.PROJECTS)) {
+            const projectStore = db.createObjectStore(STORES.PROJECTS, { keyPath: 'id' });
+            projectStore.createIndex('companyId', 'companyId', { unique: false });
+          }
+          if (!db.objectStoreNames.contains(STORES.TASKS)) {
+            const taskStore = db.createObjectStore(STORES.TASKS, { keyPath: 'id' });
+            taskStore.createIndex('companyId', 'companyId', { unique: false });
+            taskStore.createIndex('projectId', 'projectId', { unique: false });
+          }
+          // Nova Store para Scheduler
+          if (!db.objectStoreNames.contains(STORES.ACCESSORY_TASKS)) {
+            const accStore = db.createObjectStore(STORES.ACCESSORY_TASKS, { keyPath: 'id' });
+            accStore.createIndex('companyId', 'companyId', { unique: false });
+            accStore.createIndex('date', 'date', { unique: false });
+          }
+          if (!db.objectStoreNames.contains(STORES.RESOURCES)) {
+            db.createObjectStore(STORES.RESOURCES, { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains(STORES.USERS)) {
+            const userStore = db.createObjectStore(STORES.USERS, { keyPath: 'id' });
+            userStore.createIndex('companyId', 'companyId', { unique: false });
+            userStore.createIndex('email', 'email', { unique: true });
+          }
+          if (!db.objectStoreNames.contains(STORES.LOGS)) {
+            const logStore = db.createObjectStore(STORES.LOGS, { keyPath: 'id' });
+            logStore.createIndex('companyId', 'companyId', { unique: false });
+            logStore.createIndex('timestamp', 'timestamp', { unique: false });
+          }
+          if (!db.objectStoreNames.contains(STORES.ROLES)) {
+            db.createObjectStore(STORES.ROLES, { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains(STORES.INVITATIONS)) {
+            db.createObjectStore(STORES.INVITATIONS, { keyPath: 'id' });
+          }
+        };
+
+        request.onsuccess = (event) => {
+          this.db = (event.target as IDBOpenDBRequest).result;
+          this.isFallback = false;
+          this.cleanupOldLogs();
+          console.log('[DB] Local database initialized successfully');
+          resolve();
+        };
+
+        request.onerror = (e) => {
+          console.error('[DB] Failed to open database:', (e.target as IDBOpenDBRequest).error);
+          console.warn('[DB] Switching to fallback mode (no local persistence).');
+          this.isFallback = true;
+          resolve(); // Resolvemos mesmo com erro para não bloquear o app
+        };
+      } catch (err) {
+        console.error('[DB] Critical error opening database:', err);
+        this.isFallback = true;
         resolve();
-      };
-
-      request.onerror = () => reject('Error opening database');
+      }
     });
   }
 
@@ -96,8 +116,12 @@ export class Database {
   }
 
   private async writeData(storeName: string, data: any): Promise<void> {
+    if (this.isFallback || !this.db) {
+      // No-op em modo fallback
+      return Promise.resolve();
+    }
     return new Promise((resolve, reject) => {
-      if (!this.db) return reject('DB not initialized');
+      if (!this.db) return resolve(); // Fallback silencioso extra
       const transaction = this.db.transaction(storeName, 'readwrite');
       const store = transaction.objectStore(storeName);
       store.put(data);
@@ -107,8 +131,9 @@ export class Database {
   }
 
   private async deleteData(storeName: string, id: string): Promise<void> {
+    if (this.isFallback || !this.db) return Promise.resolve();
     return new Promise((resolve, reject) => {
-      if (!this.db) return reject('DB not initialized');
+      if (!this.db) return resolve();
       const transaction = this.db.transaction(storeName, 'readwrite');
       const store = transaction.objectStore(storeName);
       store.delete(id);
@@ -118,10 +143,12 @@ export class Database {
   }
 
   async getStoreData(storeName: keyof typeof STORES): Promise<any[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]); // Retorna array vazio
     return new Promise((resolve) => {
       const store = this.getStore(STORES[storeName], 'readonly');
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve([]);
     });
   }
 
@@ -147,18 +174,22 @@ export class Database {
   }
 
   async getCompany(id: string): Promise<Company | null> {
+    if (this.isFallback || !this.db) return Promise.resolve(null);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.COMPANIES, 'readonly');
       const request = store.get(id);
       request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => resolve(null);
     });
   }
 
   async getAllCompanies(): Promise<Company[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.COMPANIES, 'readonly');
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve([]);
     });
   }
 
@@ -186,6 +217,7 @@ export class Database {
   }
 
   async getLogsByCompany(companyId: string): Promise<ActivityLog[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.LOGS, 'readonly');
       const index = store.index('companyId');
@@ -228,6 +260,11 @@ export class Database {
       }
     } catch (error) {
       console.error('[DB] saveLog failed:', error);
+      // Removed throw here to prevent blocking if local DB write fails in a complex chain
+      // But re-throwing might be safer if caller expects it. Given we want resilience:
+      // Let's NOT rethrow if the error is local db related, but the supabase part worked?
+      // Actually, if modify `writeData` safely, this try/catch mainly catches supabase errors or other logic.
+      // We'll keep throw error to be safe about business logic, but writeData is now safe.
       throw error;
     }
   }
@@ -239,6 +276,7 @@ export class Database {
 
     // 1. Deletar do IndexedDB (Local)
     await new Promise<void>((resolve, reject) => {
+      if (this.isFallback || !this.db) return resolve();
       try {
         const store = this.getStore(STORES.LOGS, 'readwrite');
         const request = store.openCursor();
@@ -271,7 +309,9 @@ export class Database {
         };
         request.onerror = () => reject('Failed to iterate logs');
       } catch (e) {
-        reject(e);
+        // Safe resolve on error
+        console.error("Local log delete error", e);
+        resolve();
       }
     });
 
@@ -313,6 +353,7 @@ export class Database {
 
     // 1. Limpar IndexedDB
     await new Promise<void>((resolve, reject) => {
+      if (this.isFallback || !this.db) return resolve();
       try {
         const store = this.getStore(STORES.LOGS, 'readwrite');
         const request = store.openCursor();
@@ -333,9 +374,10 @@ export class Database {
             resolve();
           }
         };
-        request.onerror = () => reject('Failed to cleanup logs');
+        request.onerror = () => { console.warn("Cleanup local logs failed"); resolve(); }
       } catch (e) {
-        reject(e);
+        console.warn("Cleanup local logs error", e);
+        resolve();
       }
     });
 
@@ -376,6 +418,7 @@ export class Database {
   }
 
   async getProjectsByCompany(companyId: string): Promise<Project[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.PROJECTS, 'readonly');
       const index = store.index('companyId');
@@ -409,15 +452,18 @@ export class Database {
   }
 
   async getTasksByProject(projectId: string): Promise<Task[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.TASKS, 'readonly');
       const index = store.index('projectId');
       const request = index.getAll(projectId);
       request.onsuccess = () => resolve(request.result as Task[]);
+      request.onerror = () => resolve([]);
     });
   }
 
   async deleteTasksByProject(projectId: string): Promise<void> {
+    // Se fallback, getTasks retorna [], loop não roda, tudo certo.
     const tasks = await this.getTasksByProject(projectId);
     for (const t of tasks) {
       await this.deleteData(STORES.TASKS, t.id);
@@ -425,6 +471,7 @@ export class Database {
   }
 
   async getTasksByCompany(companyId: string): Promise<Task[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.TASKS, 'readonly');
       const index = store.index('companyId');
@@ -463,6 +510,7 @@ export class Database {
 
   // --- Métodos de Accessory Tasks ---
   async getAccessoryTasksByCompany(companyId: string): Promise<AccessoryTask[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.ACCESSORY_TASKS, 'readonly');
       const index = store.index('companyId');
@@ -493,10 +541,12 @@ export class Database {
   // ----------------------------------
 
   async getAllResources(): Promise<HelpResource[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.RESOURCES, 'readonly');
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve([]);
     });
   }
 
@@ -509,6 +559,7 @@ export class Database {
   }
 
   async getUsersByCompany(companyId: string): Promise<User[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.USERS, 'readonly');
       const index = store.index('companyId');
@@ -519,10 +570,12 @@ export class Database {
   }
 
   async getAllUsers(): Promise<User[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.USERS, 'readonly');
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve([]);
     });
   }
 
@@ -551,10 +604,12 @@ export class Database {
   }
 
   async getAllRoles(): Promise<UserRole[]> {
+    if (this.isFallback || !this.db) return Promise.resolve([]);
     return new Promise((resolve) => {
       const store = this.getStore(STORES.ROLES, 'readonly');
       const request = store.getAll();
       request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve([]);
     });
   }
 
