@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Task, TaskStatus } from '../types';
 import { STATUS_CONFIG } from '../constants';
 
+import { formatDate } from '../dateUtils';
+
 interface TaskCardProps {
   task: Task;
   onUpdateStatus: (taskId: string, newStatus: TaskStatus) => void;
@@ -82,7 +84,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdateStatus, onDeleteTask,
         <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700/50 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700 w-fit">
           <i className="far fa-calendar-alt text-[10px] text-slate-400"></i>
           <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-tighter">
-            {task.startDate ? `${task.startDate} » ${task.endDate}` : 'S/ Data'}
+            {task.startDate ? `${formatDate(task.startDate)} » ${formatDate(task.endDate || '')}` : 'S/ Data'}
           </span>
         </div>
 

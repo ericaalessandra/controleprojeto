@@ -291,19 +291,19 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, tasks, companies, isAdm
             </div>
             <i className="fas fa-chart-bar text-slate-200 dark:text-slate-600 text-2xl sm:text-3xl hidden sm:block"></i>
           </div>
-          <div className="h-64 sm:h-80 w-full">
+          <div className="w-full" style={{ height: Math.max(400, projectAnalysis.length * 60) }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={projectAnalysis} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridColor} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartAxisColor }} hide={window.innerWidth < 640} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartAxisColor }} tickFormatter={(val) => `R$ ${val / 1000}k`} />
+              <BarChart layout="vertical" data={projectAnalysis} margin={{ top: 20, right: 30, left: 100, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={chartGridColor} />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartAxisColor }} tickFormatter={(val) => `R$ ${val / 1000}k`} />
+                <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={90} tick={{ fontSize: 10, fontWeight: 'bold', fill: chartAxisColor }} />
                 <Tooltip
                   cursor={{ fill: isDarkMode ? '#1e293b' : '#f8fafc' }}
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', padding: '15px', backgroundColor: isDarkMode ? '#1e293b' : '#fff' }}
                   formatter={(val: number) => formatCurrency(val, language)}
                 />
-                <Bar dataKey="budget" name={t('metric_portfolio')} fill={brandPrimary} radius={[10, 10, 0, 0]} barSize={window.innerWidth < 640 ? 20 : 40} />
-                <Bar dataKey="allocated" name={t('metric_allocated')} fill={contrastColor} radius={[10, 10, 0, 0]} barSize={window.innerWidth < 640 ? 20 : 40} />
+                <Bar dataKey="budget" name={t('metric_portfolio')} fill={brandPrimary} radius={[0, 10, 10, 0]} barSize={20} />
+                <Bar dataKey="allocated" name={t('metric_allocated')} fill={contrastColor} radius={[0, 10, 10, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
