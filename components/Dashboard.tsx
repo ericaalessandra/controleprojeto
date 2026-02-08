@@ -10,6 +10,8 @@ interface DashboardProps {
   companies: Company[];
   isAdmin: boolean;
   isDarkMode: boolean;
+  selectedCompanyId: string;
+  onSelectCompany: (companyId: string) => void;
   onOpenProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
   onNewProject: () => void;
@@ -46,15 +48,8 @@ const MetricCard = ({ title, value, label, icon, color, subValue }: any) => {
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ projects, tasks, companies, isAdmin, isDarkMode, onOpenProject, onNewProject }) => {
+const Dashboard: React.FC<DashboardProps> = ({ projects, tasks, companies, isAdmin, isDarkMode, selectedCompanyId, onSelectCompany, onOpenProject, onNewProject }) => {
   const { t, language } = useLanguage();
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all');
-
-  useEffect(() => {
-    if (!isAdmin && companies.length > 0) {
-      setSelectedCompanyId(companies[0].id);
-    }
-  }, [isAdmin, companies]);
 
   const filteredData = useMemo(() => {
     let filteredProjs = projects;
@@ -186,7 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, tasks, companies, isAdm
             <div className="relative">
               <select
                 value={selectedCompanyId}
-                onChange={e => setSelectedCompanyId(e.target.value)}
+                onChange={(e) => onSelectCompany(e.target.value)}
                 disabled={!isAdmin && companies.length <= 1}
                 className="appearance-none w-full sm:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-3 sm:py-4 pl-6 pr-12 rounded-2xl font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-brand sm:min-w-[250px] transition-all hover-glow"
               >

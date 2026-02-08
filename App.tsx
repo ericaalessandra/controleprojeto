@@ -91,6 +91,7 @@ const App: React.FC = () => {
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
   const [editingAICompanyId, setEditingAICompanyId] = useState<string | null>(null);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [dashboardSelectedCompanyId, setDashboardSelectedCompanyId] = useState<string>('all');
 
   // Global Chatbot Icon (Master Company Logic)
   const globalChatBotIcon = React.useMemo(() => {
@@ -585,6 +586,15 @@ const App: React.FC = () => {
     };
   }, [currentUser, lastActivity, handleLogout, isSessionWarningOpen]);
 
+  // Filter projects for Sidebar based on Dashboard company selection
+  const filteredSidebarProjects = React.useMemo(() => {
+    const isAdmin = currentUser?.role === 'admin';
+    if (dashboardSelectedCompanyId === 'all' || !isAdmin) {
+      return projects;
+    }
+    return projects.filter(p => p.companyId === dashboardSelectedCompanyId);
+  }, [projects, dashboardSelectedCompanyId, currentUser]);
+
   const handleLogin = async (user: User) => {
     setIsReady(false);
     await loadEssentialData(user);
@@ -694,7 +704,7 @@ const App: React.FC = () => {
 
       <div className="flex flex-1 overflow-hidden relative">
         <Sidebar
-          projects={projects}
+          projects={filteredSidebarProjects}
           activeProjectId={activeProjectId}
           currentView={currentView}
           currentUser={currentUser}
@@ -731,6 +741,8 @@ const App: React.FC = () => {
               companies={companies}
               isAdmin={perms.canViewAllProjects}
               isDarkMode={isDarkMode}
+              selectedCompanyId={dashboardSelectedCompanyId}
+              onSelectCompany={setDashboardSelectedCompanyId}
               onOpenProject={(id) => { setActiveProjectId(id); setCurrentView('project'); }}
               onDeleteProject={async (id) => {
                 const p = projects.find(x => x.id === id);
