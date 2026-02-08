@@ -213,7 +213,10 @@ export class Database {
       status: company.status,
       contract_active: company.contractActive
     });
-    if (error) console.error("Supabase Company Sync Error:", error);
+    if (error) {
+      console.error("Supabase Company Sync Error:", error);
+      throw new Error(`Erro ao sincronizar empresa: ${error.message}`);
+    }
   }
 
   async getLogsByCompany(companyId: string): Promise<ActivityLog[]> {
@@ -551,11 +554,33 @@ export class Database {
   }
 
   async saveResource(resource: HelpResource): Promise<void> {
-    return this.writeData(STORES.RESOURCES, resource);
+    await this.writeData(STORES.RESOURCES, resource);
+
+    // Sync with Supabase
+    const { error } = await supabase.from('resources').upsert({
+      id: resource.id,
+      title: resource.title,
+      description: resource.description,
+      type: resource.type,
+      url: resource.url,
+      file_data: resource.fileData,
+      file_name: resource.fileName,
+      created_at: new Date(resource.createdAt).toISOString()
+    });
+
+    if (error) {
+      console.error("Supabase Resource Sync Error:", error);
+      throw new Error(`Erro ao sincronizar recurso: ${error.message}`);
+    }
   }
 
   async deleteResource(id: string): Promise<void> {
-    return this.deleteData(STORES.RESOURCES, id);
+    await this.deleteData(STORES.RESOURCES, id);
+    const { error } = await supabase.from('resources').delete().eq('id', id);
+    if (error) {
+      console.error("Supabase Resource Delete Error:", error);
+      throw new Error(`Erro ao excluir recurso: ${error.message}`);
+    }
   }
 
   async getUsersByCompany(companyId: string): Promise<User[]> {

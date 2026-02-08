@@ -258,7 +258,6 @@ const App: React.FC = () => {
             appName: c.app_name,
             status: c.status,
             contractActive: c.contract_active,
-            contractActive: c.contract_active,
             privacyPolicy: c.privacy_policy,
             termsOfUse: c.terms_of_use,
             aiPersona: c.ai_persona,
@@ -281,7 +280,8 @@ const App: React.FC = () => {
         { data: sUsers },
         { data: sLogs },
         { data: sRoles },
-        { data: sInvitations }
+        { data: sInvitations },
+        { data: sResources }
       ] = await Promise.all([
         supabase.from('companies').select('*'),
         supabase.from('projects').select('*'),
@@ -290,7 +290,8 @@ const App: React.FC = () => {
         supabase.from('profiles').select('*'),
         supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(200),
         supabase.from('roles').select('*'),
-        supabase.from('invitations').select('*').eq('company_id', user.companyId)
+        supabase.from('invitations').select('*').eq('company_id', user.companyId),
+        supabase.from('resources').select('*')
       ]);
 
       if (sCompanies) {
@@ -432,8 +433,22 @@ const App: React.FC = () => {
         setInvitations(mapped);
       }
 
-      const fetchedResources = await db.getAllResources();
-      setResources(fetchedResources);
+      if (sResources) {
+        const mapped = sResources.map(r => ({
+          id: r.id,
+          title: r.title,
+          description: r.description,
+          type: r.type,
+          url: r.url,
+          fileData: r.file_data,
+          fileName: r.file_name,
+          createdAt: new Date(r.created_at).getTime()
+        })) as HelpResource[];
+        setResources(mapped);
+      } else {
+        const fetchedResources = await db.getAllResources();
+        setResources(fetchedResources);
+      }
 
     } catch (error: any) {
       console.error("Critical Data Load Error:", error);

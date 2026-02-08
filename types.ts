@@ -38,6 +38,8 @@ export interface Company {
   contractEndDate?: string;
   contractValue?: number;
   contractAttachments: Attachment[];
+  aiPersona?: string;
+  aiDefinitions?: string;
   createdAt: number;
 }
 

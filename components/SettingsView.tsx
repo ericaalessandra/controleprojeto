@@ -55,24 +55,61 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, company, onUpdateUser
     setTermsOfUse(company.termsOfUse || '');
   }, [company]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'bg' | 'logo' | 'bot') => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_WIDTH = 1920;
+          const MAX_HEIGHT = 1080;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to JPEG 70%
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'bg' | 'logo' | 'bot') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Aumentado para 5MB para suportar fundos HD
     if (file.size > 5 * 1024 * 1024) {
       alert("O arquivo é muito grande. O limite para imagens de interface é 5MB.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const data = event.target?.result as string;
-      if (target === 'bg') setLoginBg(data);
-      else if (target === 'logo') setLoginLogo(data);
-      else if (target === 'bot') setChatBotIcon(data);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedData = await compressImage(file);
+      if (target === 'bg') setLoginBg(compressedData);
+      else if (target === 'logo') setLoginLogo(compressedData);
+      else if (target === 'bot') setChatBotIcon(compressedData);
+    } catch (e) {
+      alert("Erro ao processar imagem.");
+    }
   };
 
   const handleSaveUser = async () => {
@@ -122,8 +159,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, company, onUpdateUser
         termsOfUse
       });
       alert("Identidade visual e informações do sistema atualizadas!");
-    } catch (err) {
-      alert("Erro ao salvar personalização.");
+    } catch (err: any) {
+      alert(`Erro ao salvar personalização: ${err.message}`);
     } finally {
       setIsSaving(false);
     }
