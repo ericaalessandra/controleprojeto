@@ -64,6 +64,14 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
   const [newTaskDesc, setNewTaskDesc] = useState('');
   const [newTaskProjectId, setNewTaskProjectId] = useState('');
 
+  // Estado do Modal de Detalhes de Evento
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  // Estado do Modal de Todos os Eventos do Dia
+  const [selectedDayEvents, setSelectedDayEvents] = useState<any[]>([]);
+  const [isDayEventsModalOpen, setIsDayEventsModalOpen] = useState(false);
+
   useEffect(() => {
     if (!isAdmin) {
       setSelectedCompanyId(currentCompanyId);
@@ -254,27 +262,55 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
                     <span className={`text-[10px] font-bold w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-brand text-white shadow-md' : dayObj.isCurrentMonth ? 'text-slate-700' : 'text-slate-300'}`}>
                       {dayObj.date.getDate()}
                     </span>
-                    {dayObj.isCurrentMonth && (
-                      <button className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center hover:bg-brand hover:text-white transition-all text-[8px]">
-                        <i className="fas fa-plus"></i>
-                      </button>
-                    )}
+                    <div className="flex gap-1">
+                      {events.length > 3 && (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDayEvents(events);
+                            setIsDayEventsModalOpen(true);
+                          }}
+                          className="text-[8px] font-black bg-brand text-white px-1.5 py-0.5 rounded-full cursor-pointer hover:bg-brand/80 transition-all shadow-sm"
+                          title={`${events.length} eventos (clique para ver todos)`}
+                        >
+                          +{events.length - 3}
+                        </div>
+                      )}
+                      {dayObj.isCurrentMonth && (
+                        <button className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center hover:bg-brand hover:text-white transition-all text-[8px]">
+                          <i className="fas fa-plus"></i>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 mt-1">
-                    {events.map((evt, i) => (
+                  <div className="flex-1 space-y-1 mt-1 max-h-[80px] overflow-hidden">
+                    {events.slice(0, 3).map((evt, i) => (
                       <div
                         key={`${evt.type}-${evt.id}-${i}`}
-                        className={`px-2 py-1 rounded-md text-[9px] font-bold truncate shadow-sm transition-transform hover:scale-[1.02] relative group/evt ${evt.color}`}
-                        title={`${evt.title}\n\n${evt.desc}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEvent(evt);
+                          setIsDetailsModalOpen(true);
+                        }}
+                        className={`px-2 py-1 rounded-md text-[9px] font-bold truncate shadow-sm transition-all hover:scale-[1.02] relative cursor-pointer ${evt.color} h-[24px] flex items-center`}
+                        title="Clique para ver detalhes"
                       >
-                        {evt.type === 'deadline' && <i className="fas fa-flag mr-1 text-[8px] opacity-70"></i>}
-                        {evt.title}
+                        <div className="flex-1 truncate pr-6">
+                          {evt.type === 'deadline' && <i className="fas fa-flag mr-1 text-[8px] opacity-70"></i>}
+                          {evt.title}
+                        </div>
 
                         {evt.type === 'accessory' && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); onDeleteAccessoryTask(evt.id); }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover/evt:flex w-4 h-4 bg-white text-rose-500 rounded-full items-center justify-center shadow-sm hover:bg-rose-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Excluir esta tarefa?')) {
+                                onDeleteAccessoryTask(evt.id);
+                              }
+                            }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 flex w-5 h-5 bg-white text-rose-500 rounded-full items-center justify-center shadow-sm hover:bg-rose-50 opacity-30 hover:opacity-100 transition-opacity"
+                            title="Excluir tarefa"
                           >
                             <i className="fas fa-times text-[8px]"></i>
                           </button>
@@ -367,6 +403,105 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
             className="flex-1 py-3 rounded-2xl bg-brand text-white font-bold text-xs hover:shadow-xl hover:shadow-brand/20 transition-all active:scale-95"
           >
             Salvar na Agenda
+          </button>
+        </div>
+      </BaseModal>
+
+      {/* Modal de Detalhes do Evento */}
+      <BaseModal isOpen={isDetailsModalOpen} onClose={() => setIsDetailsModalOpen(false)}>
+        <div className="bg-[#f8fafc] dark:bg-slate-900 border-b border-slate-100 dark:border-white/5 p-5 flex justify-between items-center shrink-0">
+          <div>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Detalhes do Evento</h3>
+            <p className="text-[10px] font-black text-brand uppercase tracking-[0.2em] mt-3">
+              {selectedEvent?.type === 'deadline' ? 'Prazo Final de Ação' : 'Tarefa Acessória'}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar">
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Título</label>
+            <div className="w-full px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/5 text-sm font-bold text-slate-700 dark:text-white">
+              {selectedEvent?.title}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição</label>
+            <div className="w-full px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/5 text-sm font-medium text-slate-700 dark:text-slate-300 min-h-[80px]">
+              {selectedEvent?.desc}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 border-t border-slate-50 dark:border-white/5 flex gap-3 shrink-0">
+          <button
+            onClick={() => setIsDetailsModalOpen(false)}
+            className="flex-1 py-3 rounded-2xl bg-brand text-white font-bold text-xs hover:shadow-xl hover:shadow-brand/20 transition-all active:scale-95"
+          >
+            Fechar
+          </button>
+        </div>
+      </BaseModal>
+
+      {/* Modal de Todos os Eventos do Dia */}
+      <BaseModal isOpen={isDayEventsModalOpen} onClose={() => setIsDayEventsModalOpen(false)}>
+        <div className="bg-[#f8fafc] dark:bg-slate-900 border-b border-slate-100 dark:border-white/5 p-5 flex justify-between items-center shrink-0">
+          <div>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Eventos do Dia</h3>
+            <p className="text-[10px] font-black text-brand uppercase tracking-[0.2em] mt-3">
+              {selectedDayEvents.length} {selectedDayEvents.length === 1 ? 'evento' : 'eventos'}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-3 overflow-y-auto custom-scrollbar max-h-[400px]">
+          {selectedDayEvents.map((evt, i) => (
+            <div
+              key={`modal-evt-${i}`}
+              onClick={() => {
+                setSelectedEvent(evt);
+                setIsDayEventsModalOpen(false);
+                setIsDetailsModalOpen(true);
+              }}
+              className={`px-4 py-3 rounded-xl ${evt.color} shadow-sm cursor-pointer hover:scale-[1.02] transition-transform relative`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <div className="text-sm font-bold mb-1">
+                    {evt.type === 'deadline' && <i className="fas fa-flag mr-2 text-xs opacity-70"></i>}
+                    {evt.title}
+                  </div>
+                  <div className="text-[10px] font-medium opacity-80">
+                    {evt.desc}
+                  </div>
+                </div>
+                {evt.type === 'accessory' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Excluir esta tarefa?')) {
+                        onDeleteAccessoryTask(evt.id);
+                        setIsDayEventsModalOpen(false);
+                      }
+                    }}
+                    className="flex w-6 h-6 bg-white text-rose-500 rounded-full items-center justify-center shadow-sm hover:bg-rose-50 transition-colors"
+                    title="Excluir tarefa"
+                  >
+                    <i className="fas fa-times text-xs"></i>
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-5 border-t border-slate-50 dark:border-white/5 flex gap-3 shrink-0">
+          <button
+            onClick={() => setIsDayEventsModalOpen(false)}
+            className="flex-1 py-3 rounded-2xl bg-brand text-white font-bold text-xs hover:shadow-xl hover:shadow-brand/20 transition-all active:scale-95"
+          >
+            Fechar
           </button>
         </div>
       </BaseModal>
