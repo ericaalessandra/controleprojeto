@@ -286,6 +286,25 @@ const App: React.FC = () => {
             contractAttachments: []
           })) as Company[];
 
+          // PRE-LOAD: Garantir que a imagem de fundo esteja no cache do navegador 
+          // ANTES de liberar a tela de login. Isso evita o "flash" da imagem antiga.
+          const master = mapped.find(c => c.name?.toLowerCase().includes('innova') || c.appName?.toLowerCase().includes('innova')) || mapped[0];
+          if (master?.loginBgData && master.loginBgData.length > 500) {
+            try {
+              const img = new Image();
+              const preloadPromise = new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = resolve;
+                // Timeout de 2s para não travar o app se a imagem falhar
+                setTimeout(resolve, 2000);
+              });
+              img.src = master.loginBgData;
+              await preloadPromise;
+            } catch (e) {
+              console.warn("[Branding] Preload failed, continuing...", e);
+            }
+          }
+
           setCompanies(mapped);
           for (const c of mapped) await db.saveCompanyLocally(c);
         } else {
