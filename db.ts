@@ -195,7 +195,7 @@ export class Database {
 
   async saveCompany(company: Company): Promise<void> {
     await this.writeData(STORES.COMPANIES, company);
-    // Sync with Supabase
+    // Sync with Supabase (Requer Admin RLS)
     const { error } = await supabase.from('companies').upsert({
       id: company.id,
       name: company.name,
@@ -218,6 +218,11 @@ export class Database {
       throw new Error(`Erro ao sincronizar empresa: ${error.message}`);
     }
   }
+
+  async saveCompanyLocally(company: Company): Promise<void> {
+    await this.writeData(STORES.COMPANIES, company);
+  }
+
 
   async getLogsByCompany(companyId: string): Promise<ActivityLog[]> {
     if (this.isFallback || !this.db) return Promise.resolve([]);

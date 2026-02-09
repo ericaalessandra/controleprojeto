@@ -77,31 +77,36 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify, f
   };
 
   const activeBranding = useMemo(() => {
-    // 0. Encontrar Unidade Master (Innova4Up) para o Background Global
-    const masterCompany = companies.find(c =>
+    // 0. Encontrar o background: Prioriza Master (Innova), senão qualquer uma que tenha fundo definido
+    const masterCompany = companies?.find(c =>
       c.name?.toLowerCase().includes('innova') ||
       c.appName?.toLowerCase().includes('innova')
-    ) || companies[0];
+    );
 
-    const globalBg = (masterCompany && masterCompany.loginBgData) ? masterCompany.loginBgData : BRANDING_CONSTANTS.bg;
+    // Busca qualquer empresa que tenha um fundo de tela definido (tamanho mínimo para evitar bugs de strings vazias)
+    const companyWithBg = masterCompany?.loginBgData && masterCompany.loginBgData.length > 500
+      ? masterCompany
+      : (companies?.find(c => c.loginBgData && c.loginBgData.length > 500) || companies?.[0]);
+
+    const globalBg = (companyWithBg && companyWithBg.loginBgData) ? companyWithBg.loginBgData : BRANDING_CONSTANTS.bg;
 
     // 1. Tentar encontrar empresa pelo e-mail digitado (domínio) para Logo e Nome
     if (email && email.includes('@')) {
       const domain = email.split('@')[1].toLowerCase();
-      const match = companies.find(c =>
+      const match = companies?.find(c =>
         c.email?.toLowerCase().includes(domain) ||
         (c.name && c.name.toLowerCase().includes(domain.split('.')[0]))
       );
       if (match) return {
         name: match.appName || match.name,
         cnpj: match.cnpj,
-        bg: globalBg, // SEMPRE o global da master
+        bg: globalBg, // O fundo de tela agora é sempre o do sistema (definido acima)
         primaryColor: match.primaryColor || '#0071e3'
       };
     }
 
     // 2. Fallback para a primeira empresa que der match ou a Master
-    if (companies.length > 0) {
+    if (companies && companies.length > 0) {
       const first = companies[0];
       return {
         name: first.appName || first.name,

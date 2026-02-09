@@ -277,7 +277,8 @@ const App: React.FC = () => {
           })) as Company[];
 
           setCompanies(mapped);
-          for (const c of mapped) await db.saveCompany(c);
+          // Apenas salva localmente para cache de branding, sem tentar subir pro Supabase (evita erro de RLS)
+          for (const c of mapped) await db.saveCompanyLocally(c);
         }
         return;
       }
