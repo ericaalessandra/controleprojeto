@@ -244,9 +244,18 @@ const App: React.FC = () => {
 
   const loadEssentialData = useCallback(async (user: User | null) => {
     try {
+      // 1. Carregar dados locais IMEDIATAMENTE para evitar tela em branco ou perda de branding
+      const localCompanies = await db.getStoreData('COMPANIES');
+      if (localCompanies.length > 0) {
+        setCompanies(localCompanies as Company[]);
+      }
+
       if (!user) {
+        // Busca do Supabase para usuários não logados (branding)
         const { data: companiesData } = await supabase.from('companies').select('*');
-        if (companiesData) {
+
+        // PROTEÇÃO: Só atualiza se o Supabase retornar dados (evita limpar o branding se o RLS bloquear)
+        if (companiesData && companiesData.length > 0) {
           const mapped = companiesData.map(c => ({
             id: c.id,
             name: c.name,
@@ -265,9 +274,10 @@ const App: React.FC = () => {
             aiDefinitions: c.ai_definitions,
             createdAt: new Date(c.created_at).getTime(),
             contractAttachments: []
-          }));
+          })) as Company[];
+
           setCompanies(mapped);
-          for (const c of mapped) await db.saveCompany(c as Company);
+          for (const c of mapped) await db.saveCompany(c);
         }
         return;
       }

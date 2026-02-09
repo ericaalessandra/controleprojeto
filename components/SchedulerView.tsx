@@ -69,8 +69,9 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Estado do Modal de Todos os Eventos do Dia
-  const [selectedDayEvents, setSelectedDayEvents] = useState<any[]>([]);
+  const [selectedDayForEvents, setSelectedDayForEvents] = useState<Date | null>(null);
   const [isDayEventsModalOpen, setIsDayEventsModalOpen] = useState(false);
+
 
   useEffect(() => {
     if (!isAdmin) {
@@ -87,36 +88,7 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
     return { projects: proj, tasks: tsk, accessoryTasks: acc };
   }, [projects, tasks, accessoryTasks, selectedCompanyId]);
 
-  const calendarDays = useMemo(() => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-
-    const days = [];
-
-    // Dias do mês anterior para preencher
-    const startPadding = firstDay.getDay();
-    for (let i = startPadding - 1; i >= 0; i--) {
-      const d = new Date(year, month, -i);
-      days.push({ date: d, isCurrentMonth: false });
-    }
-
-    // Dias do mês atual
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-      days.push({ date: new Date(year, month, i), isCurrentMonth: true });
-    }
-
-    // Dias do próximo mês
-    const endPadding = 42 - days.length; // Grid de 6 semanas (7x6)
-    for (let i = 1; i <= endPadding; i++) {
-      days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
-    }
-
-    return days;
-  }, [currentDate]);
-
+  // Função centralizada para buscar eventos (definida antes dos useMemos para evitar crash)
   const getEventsForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
 
@@ -155,15 +127,53 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
     return [...projectEvents, ...accessoryEvents];
   };
 
+  // Calcula os eventos do dia selecionado dinamicamente para manter o modal atualizado
+  const currentDayEvents = useMemo(() => {
+    if (!selectedDayForEvents) return [];
+    return getEventsForDate(selectedDayForEvents);
+  }, [selectedDayForEvents, filteredData]);
+
+  const calendarDays = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    const days = [];
+
+    // Dias do mês anterior para preencher
+    const startPadding = firstDay.getDay();
+    for (let i = startPadding - 1; i >= 0; i--) {
+      const d = new Date(year, month, -i);
+      days.push({ date: d, isCurrentMonth: false });
+    }
+
+    // Dias do mês atual
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push({ date: new Date(year, month, i), isCurrentMonth: true });
+    }
+
+    // Dias do próximo mês
+    const endPadding = 42 - days.length; // Grid de 6 semanas (7x6)
+    for (let i = 1; i <= endPadding; i++) {
+      days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
+    }
+
+    return days;
+  }, [currentDate]);
+
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
+
 
   const handleNextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
   const handleDayClick = (date: Date) => {
+
     setSelectedDay(date);
     setIsModalOpen(true);
     setNewTaskTitle('');
@@ -263,17 +273,17 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
                       {dayObj.date.getDate()}
                     </span>
                     <div className="flex gap-1">
-                      {events.length > 3 && (
+                      {events.length > 2 && (
                         <div
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedDayEvents(events);
+                            setSelectedDayForEvents(dayObj.date);
                             setIsDayEventsModalOpen(true);
                           }}
                           className="text-[8px] font-black bg-brand text-white px-1.5 py-0.5 rounded-full cursor-pointer hover:bg-brand/80 transition-all shadow-sm"
                           title={`${events.length} eventos (clique para ver todos)`}
                         >
-                          +{events.length - 3}
+                          +{events.length - 2}
                         </div>
                       )}
                       {dayObj.isCurrentMonth && (
@@ -285,7 +295,7 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
                   </div>
 
                   <div className="flex-1 space-y-1 mt-1 max-h-[80px] overflow-hidden">
-                    {events.slice(0, 3).map((evt, i) => (
+                    {events.slice(0, 2).map((evt, i) => (
                       <div
                         key={`${evt.type}-${evt.id}-${i}`}
                         onClick={(e) => {
@@ -445,23 +455,24 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
       </BaseModal>
 
       {/* Modal de Todos os Eventos do Dia */}
-      <BaseModal isOpen={isDayEventsModalOpen} onClose={() => setIsDayEventsModalOpen(false)}>
+      <BaseModal isOpen={isDayEventsModalOpen} onClose={() => { setIsDayEventsModalOpen(false); setSelectedDayForEvents(null); }}>
         <div className="bg-[#f8fafc] dark:bg-slate-900 border-b border-slate-100 dark:border-white/5 p-5 flex justify-between items-center shrink-0">
           <div>
             <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Eventos do Dia</h3>
             <p className="text-[10px] font-black text-brand uppercase tracking-[0.2em] mt-3">
-              {selectedDayEvents.length} {selectedDayEvents.length === 1 ? 'evento' : 'eventos'}
+              {currentDayEvents.length} {currentDayEvents.length === 1 ? 'evento' : 'eventos'}
             </p>
           </div>
         </div>
 
         <div className="p-5 space-y-3 overflow-y-auto custom-scrollbar max-h-[400px]">
-          {selectedDayEvents.map((evt, i) => (
+          {currentDayEvents.map((evt, i) => (
             <div
               key={`modal-evt-${i}`}
               onClick={() => {
                 setSelectedEvent(evt);
-                setIsDayEventsModalOpen(false);
+                // Mantemos o modal de eventos aberto se quiser voltar? 
+                // Geralmente detalhes fecha o anterior se for tela pequena, mas aqui vamos manter a lógica de troca
                 setIsDetailsModalOpen(true);
               }}
               className={`px-4 py-3 rounded-xl ${evt.color} shadow-sm cursor-pointer hover:scale-[1.02] transition-transform relative`}
@@ -482,7 +493,7 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
                       e.stopPropagation();
                       if (confirm('Excluir esta tarefa?')) {
                         onDeleteAccessoryTask(evt.id);
-                        setIsDayEventsModalOpen(false);
+                        // NÃO fecha o modal, a lista sincronizada irá remover o item automaticamente
                       }
                     }}
                     className="flex w-6 h-6 bg-white text-rose-500 rounded-full items-center justify-center shadow-sm hover:bg-rose-50 transition-colors"
@@ -498,7 +509,7 @@ const SchedulerView: React.FC<SchedulerViewProps> = ({
 
         <div className="p-5 border-t border-slate-50 dark:border-white/5 flex gap-3 shrink-0">
           <button
-            onClick={() => setIsDayEventsModalOpen(false)}
+            onClick={() => { setIsDayEventsModalOpen(false); setSelectedDayForEvents(null); }}
             className="flex-1 py-3 rounded-2xl bg-brand text-white font-bold text-xs hover:shadow-xl hover:shadow-brand/20 transition-all active:scale-95"
           >
             Fechar
