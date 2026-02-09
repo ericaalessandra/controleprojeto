@@ -77,18 +77,16 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify, f
   };
 
   const activeBranding = useMemo(() => {
-    // 0. Encontrar o background: Prioriza Master (Innova), senão qualquer uma que tenha fundo definido
-    const masterCompany = companies?.find(c =>
-      c.name?.toLowerCase().includes('innova') ||
-      c.appName?.toLowerCase().includes('innova')
-    );
+    // 0. Estratégia de busca do Background Global:
+    // Procuramos em TODAS as empresas e pegamos a primeira que tiver um dado de imagem real (> 1000 chars).
+    // Como agora o App.tsx propaga a alteração do admin para todas as empresas,
+    // qualquer uma que tiver o dado será a imagem correta.
+    const candidates = companies?.filter(c => c.loginBgData && c.loginBgData.length > 1000) || [];
+    const companyWithBg = candidates[0] || (companies && companies[0]);
 
-    // Busca qualquer empresa que tenha um fundo de tela definido (tamanho mínimo para evitar bugs de strings vazias)
-    const companyWithBg = masterCompany?.loginBgData && masterCompany.loginBgData.length > 500
-      ? masterCompany
-      : (companies?.find(c => c.loginBgData && c.loginBgData.length > 500) || companies?.[0]);
-
-    const globalBg = (companyWithBg && companyWithBg.loginBgData) ? companyWithBg.loginBgData : BRANDING_CONSTANTS.bg;
+    const globalBg = (companyWithBg && companyWithBg.loginBgData && companyWithBg.loginBgData.length > 1000)
+      ? companyWithBg.loginBgData
+      : BRANDING_CONSTANTS.bg;
 
     // 1. Tentar encontrar empresa pelo e-mail digitado (domínio) para Logo e Nome
     if (email && email.includes('@')) {

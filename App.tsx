@@ -283,7 +283,7 @@ const App: React.FC = () => {
         return;
       }
 
-      // Fetch from Supabase using RLS
+      // 2. Busca completa para usuários autenticados
       const [
         { data: sCompanies },
         { data: sProjects },
@@ -329,6 +329,8 @@ const App: React.FC = () => {
         setCompanies(mapped);
         const company = mapped.find(c => c.id === user.companyId) || null;
         setCurrentCompany(company);
+        // Sincroniza localmente
+        for (const c of mapped) await db.saveCompanyLocally(c);
       }
 
       if (sProjects) {
@@ -346,7 +348,6 @@ const App: React.FC = () => {
         })) as Project[];
         setProjects(mapped);
 
-        // Se o Supabase retornou VAZIO, mas o usuário tem dados locais, tentamos a migração
         if (mapped.length === 0 && user) {
           await performLegacyMigration(user);
         }
@@ -400,7 +401,6 @@ const App: React.FC = () => {
           createdAt: new Date(u.created_at).getTime()
         })) as User[];
         setUsers(mapped);
-        // Sync roles based on profile
         const targetUser = mapped.find(u => u.id === user.id);
         if (targetUser) setCurrentUser(targetUser);
       }
@@ -416,10 +416,8 @@ const App: React.FC = () => {
           details: l.details,
           ipAddress: l.ip_address,
           deviceInfo: l.device_info,
-          // CRITICAL: Use timestamp field, not created_at
           timestamp: l.timestamp ? (typeof l.timestamp === 'string' ? new Date(l.timestamp).getTime() : l.timestamp) : Date.now()
         })) as ActivityLog[];
-        console.log('[APP] Loaded logs from Supabase:', mapped.length, 'logs');
         setLogs(mapped);
       }
 
@@ -457,18 +455,11 @@ const App: React.FC = () => {
           createdAt: new Date(r.created_at).getTime()
         })) as HelpResource[];
         setResources(mapped);
-      } else {
-        const fetchedResources = await db.getAllResources();
-        setResources(fetchedResources);
       }
 
     } catch (error: any) {
       console.error("Critical Data Load Error:", error);
-      notify('error', 'Erro de Sincronização', `O sistema teve dificuldade em carregar seus dados da nuvem: ${error.message || 'Erro desconhecido'}`);
-      if (user) {
-        const localProjects = await db.getProjectsByCompany(user.companyId);
-        if (localProjects.length > 0) setProjects(localProjects);
-      }
+      notify('error', 'Erro de Sincronização', `Falha ao carregar dados: ${error.message}`);
     }
   }, [notify, performLegacyMigration]);
 
@@ -935,10 +926,31 @@ const App: React.FC = () => {
                 await logAction('CONFIG_UPDATE', 'Atualizou configurações de perfil pessoal.');
               }}
               onUpdateCompany={async (c) => {
-                await db.saveCompany(c);
-                setCompanies(prev => prev.map(old => old.id === c.id ? c : old));
-                setCurrentCompany(c);
-                await logAction('CONFIG_UPDATE', 'Atualizou identidade visual da unidade.');
+                // Se o fundo de tela mudou, tratamos como configuração GLOBAL do sistema
+                const bgChanged = c.loginBgData !== currentCompany?.loginBgData;
+
+                if (bgChanged && c.loginBgData) {
+                  const updatedCompanies = companies.map(comp => ({
+                    ...comp,
+                    loginBgData: c.loginBgData
+                  }));
+
+                  // Salva em todas as empresas para garantir que qualquer lookup no Login funcione
+                  for (const comp of updatedCompanies) {
+                    await db.saveCompany(comp);
+                  }
+
+                  setCompanies(updatedCompanies);
+                  const updatedCurrent = updatedCompanies.find(comp => comp.id === c.id) || c;
+                  setCurrentCompany(updatedCurrent);
+                  await logAction('CONFIG_UPDATE', 'Atualizou Fundo de Tela do Sistema (Global)');
+                  notify('success', 'Wallpaper Atualizado', 'A nova imagem será aplicada a todo o sistema.');
+                } else {
+                  await db.saveCompany(c);
+                  setCompanies(prev => prev.map(old => old.id === c.id ? c : old));
+                  setCurrentCompany(c);
+                  await logAction('CONFIG_UPDATE', 'Atualizou configurações da unidade.');
+                }
               }}
             />
           )}
