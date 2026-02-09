@@ -251,10 +251,20 @@ const App: React.FC = () => {
       }
 
       if (!user) {
-        // Busca do Supabase para usuários não logados (branding)
-        const { data: companiesData } = await supabase.from('companies').select('*');
+        // Busca do Supabase para usuários não logados (branding) com RETRY
+        let companiesData = null;
+        let retries = 0;
+        while (retries < 3) {
+          const { data, error } = await supabase.from('companies').select('*');
+          if (data && data.length > 0) {
+            companiesData = data;
+            break;
+          }
+          if (error) console.warn(`[Branding] Fetch attempt ${retries + 1} failed:`, error);
+          retries++;
+          if (retries < 3) await new Promise(r => setTimeout(r, 1000)); // Espera 1s entre retentativas
+        }
 
-        // PROTEÇÃO: Só atualiza se o Supabase retornar dados (evita limpar o branding se o RLS bloquear)
         if (companiesData && companiesData.length > 0) {
           const mapped = companiesData.map(c => ({
             id: c.id,
@@ -277,8 +287,9 @@ const App: React.FC = () => {
           })) as Company[];
 
           setCompanies(mapped);
-          // Apenas salva localmente para cache de branding, sem tentar subir pro Supabase (evita erro de RLS)
           for (const c of mapped) await db.saveCompanyLocally(c);
+        } else {
+          console.error("[Branding] Could not load branding data after 3 attempts.");
         }
         return;
       }
