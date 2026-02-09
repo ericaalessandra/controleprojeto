@@ -151,14 +151,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, company, onUpdateUser
         logoData: loginLogo,
         chatBotIconData: chatBotIcon,
         appName: appName,
-        primaryColor: ensureContrast(primaryColor, '#ffffff'), // Garante contraste para modo claro
-        systemManufacturer,
-        systemVersion,
-        systemLastUpdate,
+        primaryColor: ensureContrast(primaryColor, '#ffffff'),
         privacyPolicy,
         termsOfUse
       });
-      alert("Identidade visual e informações do sistema atualizadas!");
+      alert("Identidade visual personalizada com sucesso! O fundo de tela foi replicado para todo o sistema.");
     } catch (err: any) {
       alert(`Erro ao salvar personalização: ${err.message}`);
     } finally {
