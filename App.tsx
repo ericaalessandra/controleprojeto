@@ -935,14 +935,15 @@ const App: React.FC = () => {
                     loginBgData: c.loginBgData
                   }));
 
-                  // Salva em todas as empresas para garantir que qualquer lookup no Login funcione
-                  for (const comp of updatedCompanies) {
-                    await db.saveCompany(comp);
-                  }
-
+                  // 1. Atualizar Estado em Memória IMEDIATAMENTE (Reatividade Instantânea)
                   setCompanies(updatedCompanies);
                   const updatedCurrent = updatedCompanies.find(comp => comp.id === c.id) || c;
                   setCurrentCompany(updatedCurrent);
+
+                  // 2. Persistência em Segundo Plano (Paralela)
+                  // Não aguardamos o término para fechar o modal, mas aguardamos para garantir integridade
+                  await Promise.all(updatedCompanies.map(comp => db.saveCompany(comp)));
+
                   await logAction('CONFIG_UPDATE', 'Atualizou Fundo de Tela do Sistema (Global)');
                   notify('success', 'Wallpaper Atualizado', 'A nova imagem será aplicada a todo o sistema.');
                 } else {
