@@ -148,7 +148,10 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSave, proj
               {/* Campos à Direita */}
               <div className="flex-1 space-y-4">
                 <div className="relative">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Título do Projeto</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">
+                    Título do Projeto
+                    <Tooltip text="Nome curto e identificável para a iniciativa estratégica." />
+                  </label>
                   <input
                     required
                     type="text"
@@ -160,7 +163,10 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSave, proj
                 </div>
 
                 <div className="relative">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Resumo / Escopo</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">
+                    Resumo / Escopo
+                    <Tooltip text="Descrição sucinta dos objetivos e o que está incluído ou excluído do projeto." />
+                  </label>
                   <textarea
                     rows={3}
                     value={description}
@@ -179,7 +185,10 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSave, proj
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="grid grid-cols-2 gap-3">
                 <div className="relative">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Data Inicial</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">
+                    Data Inicial
+                    <Tooltip text="Data planejada para o início das atividades conforme o cronograma." />
+                  </label>
                   <input
                     type="date"
                     value={startDate}
@@ -188,7 +197,10 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSave, proj
                   />
                 </div>
                 <div className="relative">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Data Final</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">
+                    Data Final
+                    <Tooltip text="Prazo limite para a entrega de todos os marcos e encerramento do projeto." />
+                  </label>
                   <input
                     type="date"
                     value={endDate}
@@ -199,7 +211,10 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSave, proj
               </div>
 
               <div className="relative">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Investimento Previsto</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">
+                  Investimento Previsto
+                  <Tooltip text="Valor total orçado para a execução desta iniciativa." />
+                </label>
                 <input
                   type="text"
                   value={budgetText}
@@ -220,7 +235,10 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSave, proj
           {/* Seção 3: Metas e OKRs */}
           <section className="space-y-6">
             <div className="flex justify-between items-center mb-6">
-              <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">Metas e OKRs</h4>
+              <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">
+                Metas e OKRs
+                <Tooltip text="Marcos específicos e mensuráveis que definem o sucesso do projeto." />
+              </h4>
               <button
                 type="button"
                 onClick={addObjective}
