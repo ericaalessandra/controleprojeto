@@ -32,12 +32,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose, onUpda
   };
 
   return (
-    <BaseModal isOpen={true} onClose={onClose} maxWidth="max-w-2xl">
+    <BaseModal isOpen={true} onClose={onClose} maxWidth="max-w-5xl">
       <div className="h-[90vh] flex flex-col overflow-hidden bg-white dark:bg-slate-900 border-none shadow-none rounded-none">
 
         {/* Header Elegante com Status */}
-        <header className="px-10 py-10 border-b border-slate-100 dark:border-white/5 flex flex-col bg-slate-50/30 dark:bg-slate-900/50">
-          <div className="flex items-center gap-4 mb-4">
+        <header className="px-10 py-6 border-b border-slate-100 dark:border-white/5 flex flex-col bg-slate-50/30 dark:bg-slate-900/50">
+          <div className="flex items-center gap-4 mb-3">
             <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm ${config.bg} ${config.color} dark:bg-opacity-20`}>
               {config.icon} {task.status}
             </div>
@@ -47,7 +47,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose, onUpda
         </header>
 
         {/* Conteúdo com Scroll Premium */}
-        <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar bg-white dark:bg-slate-950">
+        <div className="flex-1 overflow-y-auto p-10 space-y-8 custom-scrollbar bg-white dark:bg-slate-950">
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Coluna 1: Escopo e Objetivos */}
@@ -156,7 +156,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose, onUpda
         </div>
 
         {/* Footer de Governança de Status */}
-        <footer className="p-10 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-6">
+        <footer className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex flex-wrap justify-center gap-2">
             {Object.values(TaskStatus).map(s => (
               <button
