@@ -5,7 +5,7 @@ import BaseModal from './BaseModal';
 
 interface NewProjectModalProps {
   onClose: () => void;
-  onSave: (name: string, description: string, totalBudget?: number, objectives?: ProjectObjective[], startDate?: string, endDate?: string, logoData?: string) => Promise<string | void>;
+  onSave: (name: string, description: string, totalBudget?: number, objectives?: ProjectObjective[], startDate?: string, endDate?: string, logoData?: string, driveLink?: string) => Promise<string | void>;
   projectToEdit?: any;
   company?: Company | null;
 }
@@ -23,6 +23,7 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSave, proj
   const [name, setName] = useState(projectToEdit?.name || '');
   const [logoData, setLogoData] = useState(projectToEdit?.logoData || '');
   const [description, setDescription] = useState(projectToEdit?.description || '');
+  const [driveLink, setDriveLink] = useState(projectToEdit?.driveLink || '');
   const [totalBudget, setTotalBudget] = useState<number>(projectToEdit?.totalBudget || 0);
   const [budgetText, setBudgetText] = useState<string>('');
   const [startDate, setStartDate] = useState(projectToEdit?.startDate || '');
@@ -78,7 +79,7 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSave, proj
     }
 
     setIsSaving(true);
-    onSave(name, description, totalBudget, objectives.filter(o => o.description.trim() !== ''), startDate, endDate, logoData)
+    onSave(name, description, totalBudget, objectives.filter(o => o.description.trim() !== ''), startDate, endDate, logoData, driveLink)
       .finally(() => {
         setIsSaving(false);
         onClose();
@@ -173,6 +174,20 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ onClose, onSave, proj
                     onChange={e => setDescription(e.target.value)}
                     className="w-full px-5 py-4 rounded-3xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-medium text-sm resize-none text-slate-900 dark:text-white transition-all shadow-inner focus:ring-2 focus:ring-indigo-500/20"
                     placeholder="Qual o objetivo principal desta iniciativa?"
+                  />
+                </div>
+
+                <div className="relative">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">
+                    Link Geral (Google Drive):
+                    <Tooltip text="Informar o link do drive (Google Drive) de referência para a documentação desse projeto." />
+                  </label>
+                  <input
+                    type="text"
+                    value={driveLink}
+                    onChange={e => setDriveLink(e.target.value)}
+                    className="w-full px-5 py-4 rounded-3xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-sm text-slate-900 dark:text-white transition-all shadow-inner focus:ring-2 focus:ring-indigo-500/20"
+                    placeholder="https://drive.google.com/..."
                   />
                 </div>
               </div>

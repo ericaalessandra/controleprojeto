@@ -443,6 +443,7 @@ export class Database {
       company_id: project.companyId,
       name: project.name,
       description: project.description,
+      drive_link: project.driveLink || null,
       total_budget: project.totalBudget,
       objectives: project.objectives,
       start_date: project.startDate || null,

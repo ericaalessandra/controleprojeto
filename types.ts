@@ -133,6 +133,7 @@ export interface Project {
   name: string;
   logoData?: string; // Logo específico do projeto
   description: string;
+  driveLink?: string; // Link Geral (Google Drive)
   totalBudget?: number;
   objectives: ProjectObjective[];
   status?: 'active' | 'inactive'; // ✅ Status do projeto

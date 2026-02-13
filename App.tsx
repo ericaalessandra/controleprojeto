@@ -636,11 +636,11 @@ const App: React.FC = () => {
   };
 
 
-  const handleSaveProject = async (name: string, description: string, totalBudget?: number, objectives: ProjectObjective[] = [], startDate?: string, endDate?: string, logoData?: string) => {
+  const handleSaveProject = async (name: string, description: string, totalBudget?: number, objectives: ProjectObjective[] = [], startDate?: string, endDate?: string, logoData?: string, driveLink?: string) => {
     if (!currentUser) return '';
     try {
       const projectData: Project = projectToEdit
-        ? { ...projectToEdit, name, description, totalBudget, objectives, startDate, endDate, logoData }
+        ? { ...projectToEdit, name, description, totalBudget, objectives, startDate, endDate, logoData, driveLink }
         : {
           id: crypto.randomUUID(),
           companyId: currentUser.companyId,
@@ -651,6 +651,7 @@ const App: React.FC = () => {
           startDate,
           endDate,
           logoData,
+          driveLink,
           status: 'active', // ✅ FIX CRÍTICO: Novo projeto sempre começa como 'active'
           createdAt: Date.now(),
         };
