@@ -91,7 +91,29 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
     let loadedCount = 0;
     const newAttachments: Attachment[] = [];
 
+    const ALLOWED_EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'xls', 'xlsx'];
+    const ALLOWED_MIME_TYPES = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+
     fileArray.forEach((file: File) => {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      const isValidExtension = extension && ALLOWED_EXTENSIONS.includes(extension);
+      const isValidMime = ALLOWED_MIME_TYPES.includes(file.type);
+
+      if (!isValidExtension && !isValidMime) {
+        alert(`O arquivo "${file.name}" não é permitido. Apenas PDF, PNG, JPG, Word e Excel são aceitos.`);
+        loadedCount++;
+        if (loadedCount === fileArray.length) setIsUploading(false);
+        return;
+      }
+
       if (file.size > MAX_FILE_SIZE_BYTES) {
         alert(`O arquivo "${file.name}" excede o limite de ${MAX_FILE_SIZE_MB}MB.`);
         loadedCount++;
@@ -126,6 +148,21 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
 
   const removeAttachment = (id: string) => {
     setAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const handleDownload = (file: Attachment) => {
+    if (!file.data) return;
+    try {
+      const link = document.createElement('a');
+      link.href = file.data;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Erro ao baixar arquivo:", err);
+      alert("Falha ao baixar o arquivo.");
+    }
   };
 
   const steps = [
@@ -358,7 +395,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
                     <i className="fas fa-cloud-arrow-up text-lg sm:text-xl"></i>
                   </div>
                   <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Upload de Arquivos Digitais</p>
-                  <input type="file" multiple onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <p className="text-[7px] text-slate-300 uppercase tracking-widest mt-1">PDF, PNG, JPG, WORD, EXCEL</p>
+                  <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                 </div>
 
                 <div className="space-y-4">
@@ -366,10 +404,36 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
                     <div key={file.id} className="p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-2xl sm:rounded-3xl shadow-sm space-y-3 sm:space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <i className={`fas ${file.type.includes('image') ? 'fa-image text-amber-500' : 'fa-file-pdf text-rose-500'} text-xs sm:text-base`}></i>
+                          <i className={`fas ${file.type.includes('image')
+                            ? 'fa-image text-amber-500'
+                            : file.type.includes('pdf')
+                              ? 'fa-file-pdf text-rose-500'
+                              : file.type.includes('word') || file.name.endsWith('.doc') || file.name.endsWith('.docx')
+                                ? 'fa-file-word text-blue-500'
+                                : file.type.includes('sheet') || file.type.includes('excel') || file.name.endsWith('.xls') || file.name.endsWith('.xlsx')
+                                  ? 'fa-file-excel text-emerald-500'
+                                  : 'fa-file text-slate-400'
+                            } text-xs sm:text-base`}></i>
                           <span className="text-[10px] font-bold text-slate-500 truncate max-w-[150px] sm:max-w-[200px]">{file.name}</span>
                         </div>
-                        <button type="button" onClick={() => removeAttachment(file.id)} className="text-slate-300 hover:text-rose-500"><i className="fas fa-trash-alt text-[10px]"></i></button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDownload(file)}
+                            className="text-slate-300 hover:text-indigo-500 transition-colors p-1"
+                            title="Baixar arquivo"
+                          >
+                            <i className="fas fa-download text-[10px]"></i>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(file.id)}
+                            className="text-slate-300 hover:text-rose-500 transition-colors p-1"
+                            title="Excluir arquivo"
+                          >
+                            <i className="fas fa-trash-alt text-[10px]"></i>
+                          </button>
+                        </div>
                       </div>
                       <input type="text" value={file.description || ''} onChange={e => updateAttachmentDescription(file.id, e.target.value)} placeholder="O que este arquivo comprova?" className={`w-full px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-slate-50 dark:bg-slate-800 border text-[10px] sm:text-[11px] font-bold outline-none transition-all ${!file.description ? 'border-rose-200' : 'border-slate-100 dark:border-white/5 focus:border-indigo-500'}`} />
                     </div>
