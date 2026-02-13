@@ -81,8 +81,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify, f
     // Procuramos em TODAS as empresas e pegamos a primeira que tiver um dado de imagem real (> 1000 chars).
     // Como agora o App.tsx propaga a alteração do admin para todas as empresas,
     // qualquer uma que tiver o dado será a imagem correta.
+    // Pegamos a empresa que tiver o dado de imagem mais "robusto" (maior length)
+    // Isso garante consistência se houver discrepância temporária entre unidades.
     const candidates = companies?.filter(c => c.loginBgData && c.loginBgData.length > 500) || [];
-    const companyWithBg = candidates[0] || (companies && companies[0]);
+    const sortedCandidates = [...candidates].sort((a, b) => (b.loginBgData?.length || 0) - (a.loginBgData?.length || 0));
+    const companyWithBg = sortedCandidates[0] || (companies && companies[0]);
 
     const globalBg = (companyWithBg && companyWithBg.loginBgData && companyWithBg.loginBgData.length > 500)
       ? companyWithBg.loginBgData

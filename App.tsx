@@ -960,10 +960,17 @@ const App: React.FC = () => {
                 const bgChanged = c.loginBgData !== currentCompany?.loginBgData;
 
                 if (bgChanged && c.loginBgData) {
-                  const updatedCompanies = companies.map(comp => ({
-                    ...comp,
-                    loginBgData: c.loginBgData
-                  }));
+                  const updatedCompanies = companies.map(comp => {
+                    if (comp.id === c.id) {
+                      // Para a empresa editada, mantém TODOS os dados novos (Logo, Nome, etc)
+                      return c;
+                    }
+                    // Para as outras empresas, propaga APENAS o fundo de tela
+                    return {
+                      ...comp,
+                      loginBgData: c.loginBgData
+                    };
+                  });
 
                   // 1. Atualizar Estado em Memória IMEDIATAMENTE (Reatividade Instantânea)
                   setCompanies(updatedCompanies);
@@ -971,8 +978,11 @@ const App: React.FC = () => {
                   setCurrentCompany(updatedCurrent);
 
                   // 2. Persistência em Segundo Plano (Paralela)
-                  // Não aguardamos o término para fechar o modal, mas aguardamos para garantir integridade
-                  await Promise.all(updatedCompanies.map(comp => db.saveCompany(comp)));
+                  // Usamos um loop para garantir que cada empresa seja salva corretamente
+                  // Para performance futura, poderíamos usar um bulk upsert no db.ts
+                  for (const comp of updatedCompanies) {
+                    await db.saveCompany(comp);
+                  }
 
                   await logAction('CONFIG_UPDATE', 'Atualizou Fundo de Tela do Sistema (Global)');
                   notify('success', 'Wallpaper Atualizado', 'A nova imagem será aplicada a todo o sistema.');
