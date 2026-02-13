@@ -185,17 +185,27 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent | boolean) => {
+    // Se e for boolean, é o flag isEarlySave. Se não, é o evento do form.
+    const isEarlySave = typeof e === 'boolean' ? e : false;
+    if (e && typeof e !== 'boolean') (e as React.FormEvent).preventDefault();
+
+    if (!title.trim()) {
+      alert("Por favor, preencha o título da ação.");
+      return;
+    }
 
     if (startDate && endDate && endDate < startDate) {
       alert("Atenção: A 'Data Final' não pode ser anterior à 'Data Inicial'.");
       return;
     }
 
-    if (attachments.some(a => !a.description || a.description.trim() === '')) {
-      alert("Erro: O campo 'Descritivo' é obrigatório para todos os arquivos na Etapa 5.");
-      return;
+    // Só valida descrições se não for salvamento precoce OU se estiver na etapa 5
+    if (!isEarlySave || currentStep === 5) {
+      if (attachments.some(a => !a.description || a.description.trim() === '')) {
+        alert("Erro: O campo 'Descritivo' é obrigatório para todos os arquivos na Etapa 5.");
+        return;
+      }
     }
 
     onSave({
@@ -452,15 +462,28 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
 
         {/* FOOTER: CONTROLES DE NAVEGAÇÃO DA TIMELINE (ESTRATÉGICO MOBILE) */}
         <footer className="shrink-0 p-5 sm:p-8 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5 flex gap-3 sm:gap-4">
-          {currentStep > 1 && (
-            <button
-              type="button"
-              onClick={handleBack}
-              className="px-4 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-white/10 text-slate-400 font-black uppercase text-[9px] sm:text-[10px] tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 active:scale-95"
-            >
-              <i className="fas fa-angle-left"></i> <span className="hidden xs:inline">Voltar</span>
-            </button>
-          )}
+          <div className="flex-1 flex gap-3">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex-1 sm:flex-none px-4 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-white/10 text-slate-400 font-black uppercase text-[9px] sm:text-[10px] tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2 active:scale-95"
+              >
+                <i className="fas fa-angle-left"></i> <span className="hidden xs:inline">Voltar</span>
+              </button>
+            )}
+
+            {title.trim() && (
+              <button
+                type="button"
+                onClick={() => handleSubmit(true)}
+                className="flex-1 sm:flex-none px-4 sm:px-8 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl border border-indigo-100 dark:border-indigo-500/20 text-indigo-500 font-black uppercase text-[9px] sm:text-[10px] tracking-widest hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 active:scale-95"
+                title="Salvar alterações e sair"
+              >
+                <i className="fas fa-save shadow-sm"></i> <span className="hidden xs:inline">Salvar Ação</span>
+              </button>
+            )}
+          </div>
 
           <button
             type="button"
