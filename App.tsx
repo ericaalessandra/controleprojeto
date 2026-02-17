@@ -618,10 +618,12 @@ const App: React.FC = () => {
     };
   }, [currentUser, lastActivity, handleLogout, isSessionWarningOpen]);
 
-  // Filter projects for Sidebar based on Dashboard company selection
   const filteredSidebarProjects = React.useMemo(() => {
     const isAdmin = currentUser?.role === 'admin';
-    if (dashboardSelectedCompanyId === 'all' || !isAdmin) {
+    if (!isAdmin && currentUser?.companyId) {
+      return projects.filter(p => p.companyId === currentUser.companyId);
+    }
+    if (dashboardSelectedCompanyId === 'all') {
       return projects;
     }
     return projects.filter(p => p.companyId === dashboardSelectedCompanyId);
@@ -775,6 +777,7 @@ const App: React.FC = () => {
               isAdmin={perms.canViewAllProjects}
               isDarkMode={isDarkMode}
               selectedCompanyId={dashboardSelectedCompanyId}
+              currentCompany={currentCompany}
               onSelectCompany={setDashboardSelectedCompanyId}
               onOpenProject={(id) => { setActiveProjectId(id); setCurrentView('project'); }}
               onDeleteProject={async (id) => {

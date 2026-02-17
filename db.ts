@@ -506,7 +506,9 @@ export class Database {
       involved: task.involved,
       target_audience: task.targetAudience,
       status: task.status,
-      attachments: task.attachments
+      attachments: task.attachments,
+      specific_goals: task.specificGoals || [],
+      drive_link: task.driveLink || null
     });
     if (error) console.error("Supabase Task Sync Error:", error);
   }

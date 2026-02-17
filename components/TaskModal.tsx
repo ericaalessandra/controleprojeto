@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Task, TaskStatus, Attachment, Project, Company } from '../types';
+import { Project, Task, TaskStatus, Company, Attachment, ProjectObjective } from '../types';
 import { useLanguage } from '../LanguageContext';
 import BaseModal from './BaseModal';
 
@@ -41,6 +41,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
   const [targetAudience, setTargetAudience] = useState(initialTask?.targetAudience || '');
   const [status, setStatus] = useState<TaskStatus>(initialTask?.status || TaskStatus.PLANNING);
   const [attachments, setAttachments] = useState<Attachment[]>(initialTask?.attachments || []);
+  const [specificGoals, setSpecificGoals] = useState<ProjectObjective[]>(initialTask?.specificGoals || [{ id: crypto.randomUUID(), description: '', deadline: '' }]);
+  const [driveLink, setDriveLink] = useState(initialTask?.driveLink || '');
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -81,6 +83,19 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
     setLinkedObjectives(prev =>
       prev.includes(objId) ? prev.filter(id => id !== objId) : [...prev, objId]
     );
+  };
+
+  const addSpecificGoal = () => {
+    setSpecificGoals([...specificGoals, { id: crypto.randomUUID(), description: '', deadline: '' }]);
+  };
+
+  const removeSpecificGoal = (id: string) => {
+    if (specificGoals.length === 1) return;
+    setSpecificGoals(specificGoals.filter(obj => obj.id !== id));
+  };
+
+  const updateSpecificGoal = (id: string, field: keyof ProjectObjective, value: string) => {
+    setSpecificGoals(specificGoals.map(obj => obj.id === id ? { ...obj, [field]: value } : obj));
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,7 +235,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
       involved: involvedList,
       targetAudience,
       status,
-      attachments
+      attachments,
+      specificGoals: specificGoals.filter(o => o.description.trim() !== ''),
+      driveLink
     });
   };
 
@@ -279,11 +296,17 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
                   <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identificação Básica</h5>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Título da Ação</label>
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                    Título da Ação
+                    <Tooltip text="Nome curto e identificável para a ação." />
+                  </label>
                   <input required type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-xs dark:text-white focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-sm" placeholder="Ex: Workshop de Capacitação" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Descrição do Escopo</label>
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                    Descrição do Escopo
+                    <Tooltip text="O que será entregue nesta ação?" />
+                  </label>
                   <textarea rows={6} value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-xs dark:text-white focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none shadow-sm" placeholder="O que será entregue nesta ação?" />
                 </div>
               </div>
@@ -299,11 +322,69 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
                   <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alinhamento Estratégico</h5>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Objetivo Específico</label>
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                    Objetivo Específico
+                    <Tooltip text="Qual o propósito fundamental?" />
+                  </label>
                   <textarea rows={3} value={goal} onChange={e => setGoal(e.target.value)} className="w-full px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-xs dark:text-white focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none shadow-sm" placeholder="Qual o propósito fundamental?" />
                 </div>
-                <div className="space-y-3">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Relacionar às Metas do Projeto:</p>
+
+                {/* Metas Específicas */}
+                <div className="space-y-4 pt-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] font-black text-indigo-500 uppercase tracking-widest ml-1">
+                      Metas Específicas
+                      <Tooltip text="Marcos específicos e mensuráveis que definem o sucesso dessa ação." />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addSpecificGoal}
+                      className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-all shadow-lg active:scale-95"
+                    >
+                      <i className="fas fa-plus text-[8px]"></i>
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {specificGoals.map((g, idx) => (
+                      <div key={g.id} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 flex flex-col sm:flex-row gap-3 items-end group transition-all">
+                        <div className="flex-1 w-full space-y-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="w-4 h-4 rounded-md bg-indigo-600 text-white text-[8px] flex items-center justify-center font-black">{idx + 1}</span>
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Descrição da Meta</span>
+                          </div>
+                          <input
+                            type="text"
+                            value={g.description}
+                            onChange={e => updateSpecificGoal(g.id, 'description', e.target.value)}
+                            placeholder="Ex: Concluir etapa 1"
+                            className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border-none text-[10px] font-bold text-slate-700 dark:text-slate-200 outline-none shadow-inner focus:ring-2 focus:ring-indigo-500/20"
+                          />
+                        </div>
+                        <div className="w-full sm:w-32 space-y-2">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Prazo</span>
+                          <input
+                            type="date"
+                            value={g.deadline}
+                            onChange={e => updateSpecificGoal(g.id, 'deadline', e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border-none text-[10px] font-bold text-slate-700 dark:text-slate-200 outline-none shadow-inner"
+                          />
+                        </div>
+                        {specificGoals.length > 1 && (
+                          <button type="button" onClick={() => removeSpecificGoal(g.id)} className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center shadow-sm">
+                            <i className="fas fa-trash-alt text-[10px]"></i>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-4 border-t border-slate-50 dark:border-white/5">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    Relacionar às Metas do Projeto:
+                    <Tooltip text="Vincule esta ação a uma ou mais metas globais do projeto." />
+                  </p>
                   <div className="grid grid-cols-1 gap-2">
                     {project.objectives?.map(obj => (
                       <label key={obj.id} className={`flex items-start gap-3 p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${linkedObjectives.includes(obj.id) ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-indigo-300'}`}>
@@ -336,20 +417,32 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
                 <div className="grid grid-cols-1 gap-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Data Início</label>
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                        Data Início
+                        <Tooltip text="Data planejada para o início das atividades." />
+                      </label>
                       <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-xs dark:text-white shadow-sm" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Data Fim</label>
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                        Data Fim
+                        <Tooltip text="Prazo limite para a entrega desta ação." />
+                      </label>
                       <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-xs dark:text-white shadow-sm" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1">Custo Total Previsto (R$)</label>
+                    <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1">
+                      Custo Total Previsto (R$)
+                      <Tooltip text="Valor orçado para a execução desta ação." />
+                    </label>
                     <input type="text" value={budgetText} onChange={handleBudgetChange} className="w-full px-5 py-4 rounded-xl sm:rounded-2xl bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 border-none outline-none font-black text-base sm:text-lg shadow-sm" placeholder="R$ 0,00" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Público Beneficiado</label>
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                      Público Beneficiado
+                      <Tooltip text="Quem será diretamente impactado por esta ação?" />
+                    </label>
                     <input type="text" value={targetAudience} onChange={e => setTargetAudience(e.target.value)} className="w-full px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-xs dark:text-white shadow-sm" placeholder="Ex: Mulheres líderes, Equipe técnica..." />
                   </div>
                 </div>
@@ -367,7 +460,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
                 </div>
                 <div className="space-y-4">
                   <div className="flex gap-2">
-                    <input type="text" value={newInvolved} onChange={e => setNewInvolved(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddInvolved())} className="flex-1 px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-xs dark:text-white shadow-sm" placeholder="Nome do integrante..." />
+                    <div className="flex-1 relative">
+                      <input type="text" value={newInvolved} onChange={e => setNewInvolved(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddInvolved())} className="w-full px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-xs dark:text-white shadow-sm" placeholder="Nome do integrante..." />
+                      <div className="absolute top-4 right-4">
+                        <Tooltip text="Pessoas responsáveis pela execução desta ação." />
+                      </div>
+                    </div>
                     <button type="button" onClick={handleAddInvolved} className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center hover:scale-105 transition-all shadow-lg active:scale-95"><i className="fas fa-plus"></i></button>
                   </div>
                   <div className="grid grid-cols-1 gap-2">
@@ -400,11 +498,29 @@ const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, on
                   <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Documentação & Evidências</h5>
                 </div>
 
+                {/* Google Drive Link for Task */}
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                    Informar o link para o diretório (Google Drive) dessa Ação:
+                    <Tooltip text="Incluir o link do Google Drive com as evidências de execução dessa ação." />
+                  </label>
+                  <input
+                    type="text"
+                    value={driveLink}
+                    onChange={e => setDriveLink(e.target.value)}
+                    className="w-full px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-900 border-none outline-none font-bold text-xs dark:text-white focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-sm"
+                    placeholder="https://drive.google.com/..."
+                  />
+                </div>
+
                 <div className="relative p-6 sm:p-10 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl sm:rounded-[40px] flex flex-col items-center justify-center bg-slate-50/10 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all group cursor-pointer">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-indigo-500 mb-3 group-hover:scale-110 transition-transform">
                     <i className="fas fa-cloud-arrow-up text-lg sm:text-xl"></i>
                   </div>
-                  <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Upload de Arquivos Digitais</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Upload de Arquivos Digitais</p>
+                    <Tooltip text="Carregue arquivos que comprovem a execução desta ação. PDF, PNG, JPG, Word e Excel são aceitos." />
+                  </div>
                   <p className="text-[7px] text-slate-300 uppercase tracking-widest mt-1">PDF, PNG, JPG, WORD, EXCEL</p>
                   <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                 </div>

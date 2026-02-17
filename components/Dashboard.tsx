@@ -11,6 +11,7 @@ interface DashboardProps {
   isAdmin: boolean;
   isDarkMode: boolean;
   selectedCompanyId: string;
+  currentCompany: Company | null;
   onSelectCompany: (companyId: string) => void;
   onOpenProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
@@ -48,14 +49,22 @@ const MetricCard = ({ title, value, label, icon, color, subValue }: any) => {
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ projects, tasks, companies, isAdmin, isDarkMode, selectedCompanyId, onSelectCompany, onOpenProject, onNewProject }) => {
+const Dashboard: React.FC<DashboardProps> = ({ projects, tasks, companies, isAdmin, isDarkMode, selectedCompanyId, currentCompany, onSelectCompany, onOpenProject, onNewProject }) => {
   const { t, language } = useLanguage();
+
+  const displayedCompanies = useMemo(() => {
+    if (isAdmin) return companies;
+    return currentCompany ? [currentCompany] : [];
+  }, [companies, isAdmin, currentCompany]);
 
   const filteredData = useMemo(() => {
     let filteredProjs = projects;
 
     if (selectedCompanyId !== 'all') {
       filteredProjs = projects.filter(p => p.companyId === selectedCompanyId);
+    } else if (!isAdmin && currentCompany) {
+      // Fallback: se for colaborador e estiver 'all' (inconsistente), força filtro
+      filteredProjs = projects.filter(p => p.companyId === currentCompany.id);
     }
 
     const filteredProjIds = filteredProjs.map(p => p.id);
@@ -186,7 +195,7 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, tasks, companies, isAdm
                 className="appearance-none w-full sm:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-3 sm:py-4 pl-6 pr-12 rounded-2xl font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-brand sm:min-w-[250px] transition-all hover-glow"
               >
                 {isAdmin && <option value="all">{t('dash_all_units')}</option>}
-                {companies.map(c => (
+                {displayedCompanies.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>

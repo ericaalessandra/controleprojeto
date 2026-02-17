@@ -107,6 +107,8 @@ export interface Task {
   targetAudience: string;
   status: TaskStatus;
   attachments: Attachment[];
+  specificGoals?: ProjectObjective[]; // Metas específicas da ação
+  driveLink?: string; // Link direto para diretório da ação
   createdAt: number;
 }
 
