@@ -178,7 +178,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({
         </div>
       </header>
 
-      <div className="overflow-x-auto custom-scrollbar pb-6 mb-12">
+      <div className="pb-6 mb-12">
         {viewMode === 'kanban' ? (
           <div className="flex gap-4 md:gap-6 items-start min-w-max">
             {statusColumns.map(status => (

@@ -768,7 +768,7 @@ const App: React.FC = () => {
           onLogout={handleLogout}
         />
 
-        <main id="main-content" className="flex-1 overflow-y-auto bg-[#f5f5f7] dark:bg-slate-950 relative custom-scrollbar transition-all duration-300">
+        <main id="main-content" className="flex-1 overflow-auto bg-[#f5f5f7] dark:bg-slate-950 relative custom-scrollbar transition-all duration-300">
           {currentView === 'dashboard' && perms.viewDashboard && (
             <Dashboard
               projects={projects}
