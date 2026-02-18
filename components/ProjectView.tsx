@@ -106,7 +106,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({
   };
 
   return (
-    <div className="p-4 md:p-8 flex flex-col min-w-0">
+    <div className="p-4 md:p-8 flex flex-col min-w-full w-fit">
       {/* Header Responsivo */}
       <header className="mb-6 flex flex-col xl:flex-row xl:items-start justify-between gap-6 shrink-0">
         <div className="flex-1 flex gap-4 md:gap-6 items-start">
