@@ -25,6 +25,7 @@ const Tooltip = ({ text }: { text: string }) => (
 
 const TaskModal: React.FC<TaskModalProps> = ({ project, company, initialTask, onClose, onSave }) => {
   const { t } = useLanguage();
+  console.log("TaskModal v2.1 loaded - with Drive Link");
   const [currentStep, setCurrentStep] = useState(1);
   const [title, setTitle] = useState(initialTask?.title || '');
   const [description, setDescription] = useState(initialTask?.description || '');
