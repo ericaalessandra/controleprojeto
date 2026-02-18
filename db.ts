@@ -708,6 +708,19 @@ export class Database {
 
     // Só salva localmente se o Supabase confirmou
     await this.writeData(STORES.INVITATIONS, invite);
+
+    // [EDGE FUNCTION TRIGGER] - Envia e-mail de boas-vindas
+    // Não bloqueia o fluxo principal se falhar (fire and forget)
+    supabase.functions.invoke('send-invite-email', {
+      body: {
+        email: invite.email,
+        role: invite.role,
+        companyName: 'Innova4Up' // TODO: Pegar nome da empresa dinamicamente se possível
+      }
+    }).then(({ data, error }) => {
+      if (error) console.error("Edge Function Error:", error);
+      else console.log("Email Invite Sent:", data);
+    });
   }
 
   async getInvitationByEmail(email: string): Promise<Invitation | null> {

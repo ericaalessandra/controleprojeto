@@ -220,7 +220,16 @@ const ResourcesView: React.FC<ResourcesViewProps> = ({
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => pdf.fileData && window.open(pdf.fileData)}
+                      onClick={() => {
+                        if (pdf.fileData) {
+                          const link = document.createElement('a');
+                          link.href = pdf.fileData;
+                          link.download = pdf.fileName || `documento-${pdf.id}.pdf`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }
+                      }}
                       className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-all shadow-sm"
                       title={t('help_download_pdf')}
                     >

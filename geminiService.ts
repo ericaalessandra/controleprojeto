@@ -19,6 +19,7 @@ export const getProjectPulse = async (project: Project, tasks: Task[]): Promise<
   const prompt = `
     ${langInstruction}
     Analyze the health of this project based on real data:
+    CURRENT DATE: ${new Date().toLocaleDateString('pt-BR')}
     PROJECT: "${project.name}"
     DESCRIPTION: "${project.description}"
     TOTAL BUDGET: ${project.totalBudget || 0}
@@ -111,6 +112,7 @@ export const getProjectInsights = async (project: Project, tasks: Task[]): Promi
   const prompt = `
     ${langInstruction}
     As a senior project management consultant, analyze the project:
+    CURRENT DATE: ${new Date().toLocaleDateString('pt-BR')}
     NAME: "${project.name}"
     DESCRIPTION: "${project.description}"
     
