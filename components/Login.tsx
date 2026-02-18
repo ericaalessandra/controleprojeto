@@ -278,26 +278,22 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify, f
         const allUsers = await db.getAllUsers();
         let found = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
 
-        // Se não encontrar localmente, busca no Supabase ( Server-Side Check )
+        // Se não encontrar localmente, busca no Supabase via RPC (Bypass RLS)
         if (!found) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', email.toLowerCase())
-            .single();
+          const { data, error } = await supabase.rpc('check_user_email', { email_input: email.toLowerCase() });
 
-          if (profile) {
+          if (data && data.exists) {
             found = {
-              id: profile.id,
-              companyId: profile.company_id,
-              name: profile.name,
-              email: profile.email,
-              role: profile.role,
-              status: profile.status,
-              firstAccessDone: profile.first_access_done,
-              lgpdConsent: profile.lgpd_consent,
-              lgpdConsentDate: profile.lgpd_consent_date,
-              createdAt: new Date(profile.created_at).getTime()
+              id: 'remote-user', // ID temporário, não crítico para recuperação
+              companyId: data.company_id,
+              name: data.name,
+              email: email.toLowerCase(),
+              role: 'user', // Default, não crítico
+              status: 'active',
+              firstAccessDone: true,
+              lgpdConsent: true,
+              lgpdConsentDate: new Date().toISOString(),
+              createdAt: Date.now()
             };
           }
         }
