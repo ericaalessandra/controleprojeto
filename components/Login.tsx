@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User, Company } from '../types';
 import { db } from '../db';
 import LegalModals from './LegalModals';
@@ -56,7 +56,16 @@ const Input = ({ label, error, type = "text", icon, ...props }: any) => {
 
 const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify, forceRecovery }) => {
   const { t } = useLanguage();
-  const [view, setView] = useState<'login' | 'forgot' | 'firstAccess'>('login');
+  const [view, setView] = useState<'login' | 'forgot' | 'firstAccess' | 'reset'>('login');
+
+  // Efeito para detectar modo de recuperação vindo do App.tsx
+  useEffect(() => {
+    if (forceRecovery) {
+      setView('reset');
+      setError(null);
+    }
+  }, [forceRecovery]);
+
   const [recoveryStep, setRecoveryStep] = useState<1 | 2>(1);
   const [recoveryUser, setRecoveryUser] = useState<User | null>(null);
   const [email, setEmail] = useState('');
@@ -267,7 +276,32 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify, f
     try {
       if (recoveryStep === 1) {
         const allUsers = await db.getAllUsers();
-        const found = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+        let found = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+        // Se não encontrar localmente, busca no Supabase ( Server-Side Check )
+        if (!found) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .single();
+
+          if (profile) {
+            found = {
+              id: profile.id,
+              companyId: profile.company_id,
+              name: profile.name,
+              email: profile.email,
+              role: profile.role,
+              status: profile.status,
+              firstAccessDone: profile.first_access_done,
+              lgpdConsent: profile.lgpd_consent,
+              lgpdConsentDate: profile.lgpd_consent_date,
+              createdAt: new Date(profile.created_at).getTime()
+            };
+          }
+        }
+
         if (!found) {
           setError("Este e-mail corporativo não foi localizado no sistema.");
         } else {
@@ -297,6 +331,51 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify, f
       }
     } catch (err) { setError("Falha crítica na recuperação."); }
     finally { setIsLoading(false); }
+  };
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+
+    if (password.length < 5) {
+      setError("A senha deve ter no mínimo 5 caracteres.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: password });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        notify('success', 'Senha Redefinida', 'Sua senha foi atualizada com sucesso.');
+        alert("Senha atualizada com sucesso! Faça login com suas novas credenciais.");
+        setView('login');
+        setPassword('');
+        setConfirmPassword('');
+        // Importante: atualizar user local também
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+          // Opcional: Atualizar senha no localDB se necessário para fallback
+          const localUsers = await db.getAllUsers();
+          const localUser = localUsers.find(u => u.email === user.email);
+          if (localUser) {
+            localUser.password = password;
+            await db.saveUser(localUser);
+          }
+        }
+      }
+    } catch (err: any) {
+      setError("Erro ao redefinir senha: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleFirstAccessSubmit = async (e: React.FormEvent) => {
@@ -616,6 +695,55 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, companies, notify, f
             className="w-full text-[12px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-2 py-1"
           >
             <i className="fas fa-arrow-left text-[10px]"></i> {t('back')}
+          </button>
+        </form>
+      );
+    }
+
+    if (view === 'reset') {
+      return (
+        <form onSubmit={handleResetSubmit} className="animate-apple space-y-3">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-2xl mb-1 border border-blue-100 dark:border-blue-900/50">
+            <p className="text-[10px] text-blue-700 dark:text-blue-300 font-bold text-center leading-tight">
+              Defina sua nova senha de acesso.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Input
+              label={t('login_new_password')}
+              type="password"
+              icon="fa-lock"
+              value={password}
+              onChange={(e: any) => setPassword(e.target.value)}
+              placeholder="Nova senha (min. 5 chars)"
+              required
+            />
+            <Input
+              label={t('login_confirm_password')}
+              type="password"
+              icon="fa-shield-check"
+              value={confirmPassword}
+              onChange={(e: any) => setConfirmPassword(e.target.value)}
+              placeholder="Repita a nova senha"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3.5 rounded-full bg-[#0071e3] text-white font-bold text-sm shadow-xl hover:bg-[#0077ed] transition-all flex items-center justify-center gap-2 mt-2"
+          >
+            {isLoading ? <i className="fas fa-spinner fa-spin"></i> : "Redefinir Senha"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setView('login'); setPassword(''); setConfirmPassword(''); }}
+            className="w-full text-[12px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-2 py-1"
+          >
+            <i className="fas fa-arrow-left text-[10px]"></i> Cancelar
           </button>
         </form>
       );
