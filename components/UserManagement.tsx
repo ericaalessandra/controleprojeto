@@ -28,7 +28,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, companies, onUpd
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '123',
     companyId: '',
     role: 'user' as 'admin' | 'user'
   });
@@ -87,6 +86,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, companies, onUpd
       alert(error);
       return;
     }
+    // Mantém a senha original do usuário ao editar
     await onUpdateUser({ ...editingUser, ...formData });
     setEditingUser(null);
   };
@@ -110,12 +110,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, companies, onUpd
       createdAt: Date.now()
     });
     setIsAddModalOpen(false);
-    setFormData({ name: '', email: '', password: '123', companyId: '', role: 'user' });
+    setFormData({ name: '', email: '', companyId: '', role: 'user' });
     setTab('pending');
   };
 
   const openAddModal = () => {
-    setFormData({ name: '', email: '', password: '123', companyId: '', role: 'user' });
+    setFormData({ name: '', email: '', companyId: '', role: 'user' });
     setIsAddModalOpen(true);
   };
 
@@ -124,7 +124,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, companies, onUpd
     setFormData({
       name: user.name,
       email: user.email,
-      password: user.password || '',
       companyId: user.companyId,
       role: user.role
     });
