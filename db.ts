@@ -448,7 +448,8 @@ export class Database {
       objectives: project.objectives,
       start_date: project.startDate || null,
       end_date: project.endDate || null,
-      logo_data: project.logoData
+      logo_data: project.logoData,
+      status: project.status || 'active'
     });
     if (error) console.error("Supabase Project Sync Error:", error);
   }

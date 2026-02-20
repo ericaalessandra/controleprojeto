@@ -374,7 +374,9 @@ const App: React.FC = () => {
           createdAt: new Date(p.created_at).getTime(),
           startDate: p.start_date,
           endDate: p.end_date,
-          logoData: p.logo_data
+          logoData: p.logo_data,
+          driveLink: p.drive_link || '',
+          status: p.status || 'active'
         })) as Project[];
         setProjects(mapped);
 
